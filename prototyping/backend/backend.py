@@ -85,7 +85,7 @@ async def add_devices(device: Device):
 
 
 @app.get("/api/devices/{id}")
-async def devices_id(id: str):
+async def devices_id(id: int):
     """
     /devices/{id} - GET - returns devices with id
     """
@@ -94,13 +94,13 @@ async def devices_id(id: str):
 
 
 @app.get("/api/devices/{id}/data/{senor}")
-async def devices_id_sensor(id: str, sensor: str):
+async def devices_id_sensor(id: int, sensor: str):
     """
     /devices/{id}/data/{senor} - GET -  returns data from sensor and device
     """
     out = {}
-    #d = Device(id=id, name=f'device{str(id)}', ip=f'10.10.10.{str(id)}', type='switch' if id % 2 else 'router', aggregator_id=1 if id < 6 else 2)
-    #out["device"] = d.serialize_with_id()
+    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='switch' if id % 2 else 'router', aggregator_id=1 if id < 6 else 2)
+    out["device"] = d.serialize_with_id()
     data = {}
     t = time.time()
     for i in range(100):
