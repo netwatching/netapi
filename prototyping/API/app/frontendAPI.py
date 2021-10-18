@@ -3,6 +3,7 @@ import json
 from app.model import PostSchema
 from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import sign_jwt
+from decouple import config
 
 
 app = FastAPI()
@@ -15,4 +16,5 @@ async def read_root() -> dict:
 @app.post("/login")
 async def login_user(req: Request):
     json_body = await req.json()
+    json_body['pw'] = config("pw")
     return sign_jwt(json_body['id'])
