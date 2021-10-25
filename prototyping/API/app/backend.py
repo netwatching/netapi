@@ -1,6 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
+from app.auth.auth_bearer import JWTBearer
+from app.auth.auth_handler import sign_jwt
+from decouple import config
 
 # only for test
 from random import randint
@@ -10,7 +13,7 @@ app = FastAPI()
 
 
 class Device(BaseModel):
-    id: Optional[int] = None
+    id: Optional[str] = None
     name: str
     ip: str
     type: str
@@ -44,17 +47,23 @@ class Device(BaseModel):
 
 
 @app.post("/api/aggregator-login")
-async def aggregator_login(token: str):
+async def aggregator_login(request: Request):
     """
     /aggregator-login - POST - aggregator sends token, gets token and aggregator-id returned
     """
-    token = "ghjklfdsjhjdfshgjks"
-    aggregator_id = 1
+    json_body = await request.json()
+    token = json_body['token']
+    if token == config("token"):
+        aggregator_id = 1
+        resp = {
+            "token": sign_jwt(aggregator_id)["access_token"],
+            "aggregator_id": aggregator_id
+        }
+        return resp
+    return {""}
 
-    return {"token": token, "id": aggregator_id}
 
-
-@app.get("/api/aggregator/{id}")
+@app.get("/api/aggregator/{id}", dependencies=[Depends(JWTBearer())])
 async def aggregator(id: int):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -64,10 +73,11 @@ async def aggregator(id: int):
         for i in range(1, 6):
             d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='Cisco' if i % 2 else 'Ubiquiti', aggregator_id=id, timeout=10)
             out.append(d.serialize())
-    return {"device": out}
+    print(f'------------- {out}')
+    return {"devices": out}
 
 
-@app.get("/api/devices")
+@app.get("/api/devices", dependencies=[Depends(JWTBearer())])
 async def devices():
     """
     /devices - GET - returns all devices
@@ -79,7 +89,7 @@ async def devices():
     return {"devices": out}
 
 
-@app.post("/api/devices")
+@app.post("/api/devices", dependencies=[Depends(JWTBearer())])
 async def add_devices(device: Device):
     """
     /devices - POST - add a new device and return device
@@ -88,7 +98,7 @@ async def add_devices(device: Device):
     return {"devices": device.serialize()}
 
 
-@app.get("/api/devices/{id}")
+@app.get("/api/devices/{id}", dependencies=[Depends(JWTBearer())])
 async def devices_id(id: int):
     """
     /devices/{id} - GET - returns devices with id
@@ -97,7 +107,7 @@ async def devices_id(id: int):
     return {"device": d.serialize()}
 
 
-@app.get("/api/devices/{id}/data/{senor}")
+@app.get("/api/devices/{id}/data/{senor}", dependencies=[Depends(JWTBearer())])
 async def devices_id_sensor(id: int, sensor: str):
     """
     /devices/{id}/data/{senor} - GET -  returns data from sensor and device
@@ -113,14 +123,14 @@ async def devices_id_sensor(id: int, sensor: str):
     return out
 
 
-@app.post("/api/devices/data")
+@app.post("/api/devices/data", dependencies=[Depends(JWTBearer())])
 async def devices_data(request: Request):
     """
     /devices/data - POST - aggregator sends JSON to API
     """
     try:
         data = await request.json()
-        print(data)
+        print(f'//////--  {data}')
         out = 'success'
     except:
         out = 'failed'

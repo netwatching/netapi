@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import Optional
 
+# only for test
 from random import randint
 import time
 
@@ -14,18 +15,20 @@ class Device(BaseModel):
     ip: str
     type: str
     aggregator_id: int
+    timeout: int
 
     def get_id(self):
         # gets id from db after adding device to it
         return randint(0, 1000)
 
-    def serialize_with_id(self):
+    def serialize(self):
         out = {
             "id": self.id,
             "name": self.name,
             "ip": self.ip,
             "type": self.type,
-            "aggregator_id": self.aggregator_id
+            "aggregator_id": self.aggregator_id,
+            "timeout": self.timeout
         }
         return out
 
@@ -34,7 +37,8 @@ class Device(BaseModel):
             "name": self.name,
             "ip": self.ip,
             "type": self.type,
-            "aggregator_id": self.aggregator_id
+            "aggregator_id": self.aggregator_id,
+            "timeout": self.timeout
         }
         return out
 
@@ -58,8 +62,8 @@ async def aggregator(id: int):
     out = []
     if id > 0:
         for i in range(1, 6):
-            d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='switch' if i % 2 else 'router', aggregator_id=id)
-            out.append(d.serialize_with_id())
+            d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='Cisco' if i % 2 else 'Ubiquiti', aggregator_id=id, timeout=10)
+            out.append(d.serialize())
     return {"device": out}
 
 
@@ -70,9 +74,9 @@ async def devices():
     """
     out = []
     for i in range(1, 10):
-        d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='switch' if i % 2 else 'router', aggregator_id=1 if i < 6 else 2)
-        out.append(d.serialize_with_id())
-    return {"device": out}
+        d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='Cisco' if i % 2 else 'Ubiquiti', aggregator_id=1 if i < 6 else 2, timeout=10)
+        out.append(d.serialize())
+    return {"devices": out}
 
 
 @app.post("/api/devices")
@@ -81,7 +85,7 @@ async def add_devices(device: Device):
     /devices - POST - add a new device and return device
     """
     device.id = device.get_id()
-    return {"device": device.serialize_with_id()}
+    return {"devices": device.serialize()}
 
 
 @app.get("/api/devices/{id}")
@@ -89,8 +93,8 @@ async def devices_id(id: int):
     """
     /devices/{id} - GET - returns devices with id
     """
-    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='switch' if id % 2 else 'router', aggregator_id=1 if id < 6 else 2)
-    return {"device": d.serialize_with_id()}
+    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti', aggregator_id=1 if id < 6 else 2, timeout=10)
+    return {"device": d.serialize()}
 
 
 @app.get("/api/devices/{id}/data/{senor}")
@@ -99,8 +103,8 @@ async def devices_id_sensor(id: int, sensor: str):
     /devices/{id}/data/{senor} - GET -  returns data from sensor and device
     """
     out = {}
-    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='switch' if id % 2 else 'router', aggregator_id=1 if id < 6 else 2)
-    out["device"] = d.serialize_with_id()
+    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti', aggregator_id=1 if id < 6 else 2, timeout=10)
+    out["device"] = d.serialize()
     data = {}
     t = time.time()
     for i in range(100):
