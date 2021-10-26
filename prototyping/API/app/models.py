@@ -1,15 +1,39 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel
+from typing import Optional
+
+# only for test
+from random import randint
 
 
-class PostSchema(BaseModel):
-    id: int = Field(default=None)
-    title: str = Field(...)
-    content: str = Field(...)
+class Device(BaseModel):
+    id: Optional[str] = None
+    name: str
+    ip: str
+    type: str
+    aggregator_id: int
+    timeout: int
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "title": "Securing FastAPI applications with JWT.",
-                "content": "In this tutorial, you'll learn how to secure your application by enabling authentication using JWT. We'll be using PyJWT to sign, encode and decode JWT tokens...."
-            }
+    def get_id(self):
+        # gets id from db after adding device to it
+        return randint(0, 1000)
+
+    def serialize(self):
+        out = {
+            "id": self.id,
+            "name": self.name,
+            "ip": self.ip,
+            "type": self.type,
+            "aggregator_id": self.aggregator_id,
+            "timeout": self.timeout
         }
+        return out
+
+    def serialize_without_id(self):
+        out = {
+            "name": self.name,
+            "ip": self.ip,
+            "type": self.type,
+            "aggregator_id": self.aggregator_id,
+            "timeout": self.timeout
+        }
+        return out
