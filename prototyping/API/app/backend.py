@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Depends
 from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import sign_jwt
 from decouple import config
-from models import Device
+from app.models import Device
 
 # only for test
 from random import randint
