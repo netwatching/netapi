@@ -19,7 +19,7 @@ async def read_root() -> dict:
     return {"message": "Welcome to Auth."}
 
 
-@app.post("/api/frontend/login")
+@app.post("/api/login")
 async def login_user(req: Request):
     """
     /login - POST - authenticates frontend User and returns JWT
@@ -29,7 +29,7 @@ async def login_user(req: Request):
     return sign_jwt(json_body['id'])
 
 
-@app.get("/api/frontend/devices", dependencies=[Depends(JWTBearer())])
+@app.get("/api/devices", dependencies=[Depends(JWTBearer())])
 async def get_all_devices():
     """
     /devices - GET - get all devices for the frontend
@@ -42,7 +42,7 @@ async def get_all_devices():
 
     return devices
 
-@app.get("/api/frontend/devices/problems", dependencies=[Depends(JWTBearer())])
+@app.get("/api/devices/problems", dependencies=[Depends(JWTBearer())])
 async def get_all_problems():
     """
     /devices/problems - GET - get all problems of the devices for the frontend

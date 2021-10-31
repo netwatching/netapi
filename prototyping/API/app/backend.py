@@ -12,7 +12,7 @@ app = FastAPI()
 
 
 
-@app.post("/api/backend/aggregator-login")
+@app.post("/api/aggregator-login")
 async def aggregator_login(request: Request):
     """
     /aggregator-login - POST - aggregator sends token, gets token and aggregator-id returned
@@ -29,7 +29,7 @@ async def aggregator_login(request: Request):
     return {""}
 
 
-@app.get("/api/backend/aggregator/{id}", dependencies=[Depends(JWTBearer())])
+@app.get("/api/aggregator/{id}", dependencies=[Depends(JWTBearer())])
 async def aggregator(id: int):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -43,7 +43,7 @@ async def aggregator(id: int):
     return {"devices": out}
 
 
-@app.get("/api/backend/devices", dependencies=[Depends(JWTBearer())])
+@app.get("/api/devices", dependencies=[Depends(JWTBearer())])
 async def devices():
     """
     /devices - GET - returns all devices
@@ -55,7 +55,7 @@ async def devices():
     return {"devices": out}
 
 
-@app.post("/api/backend/devices", dependencies=[Depends(JWTBearer())])
+@app.post("/api/devices", dependencies=[Depends(JWTBearer())])
 async def add_devices(device: Device):
     """
     /devices - POST - add a new device and return device
@@ -64,7 +64,7 @@ async def add_devices(device: Device):
     return {"devices": device.serialize()}
 
 
-@app.get("/api/backend/devices/{id}", dependencies=[Depends(JWTBearer())])
+@app.get("/api/devices/{id}", dependencies=[Depends(JWTBearer())])
 async def devices_id(id: int):
     """
     /devices/{id} - GET - returns devices with id
@@ -73,7 +73,7 @@ async def devices_id(id: int):
     return {"device": d.serialize()}
 
 
-@app.get("/api/backend/devices/{id}/data/{senor}", dependencies=[Depends(JWTBearer())])
+@app.get("/api/devices/{id}/data/{senor}", dependencies=[Depends(JWTBearer())])
 async def devices_id_sensor(id: int, sensor: str):
     """
     /devices/{id}/data/{senor} - GET -  returns data from sensor and device
@@ -89,7 +89,7 @@ async def devices_id_sensor(id: int, sensor: str):
     return out
 
 
-@app.post("/api/backend/devices/data", dependencies=[Depends(JWTBearer())])
+@app.post("/api/devices/data", dependencies=[Depends(JWTBearer())])
 async def devices_data(request: Request):
     """
     /devices/data - POST - aggregator sends JSON to API
