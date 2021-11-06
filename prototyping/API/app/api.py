@@ -58,9 +58,10 @@ async def aggregator(id: int):
     """
     out = []
     if id > 0:
-        for i in range(1, 6):
-            d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='Cisco' if i % 2 else 'Ubiquiti', aggregator_id=id, timeout=10)
-            out.append(d.serialize())
+        d = Device(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
+        out.append(d.serialize())
+        d = Device(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
+        out.append(d.serialize())
     print(f'------------- {out}')
     return {"devices": out}
 
@@ -94,7 +95,7 @@ async def get_all_problems():
 
     return devices
 
-
+'''
 @app.get("/api/devices", dependencies=[Depends(JWTBearer())])
 async def devices():
     """
@@ -105,7 +106,7 @@ async def devices():
         d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='Cisco' if i % 2 else 'Ubiquiti', aggregator_id=1 if i < 6 else 2, timeout=10)
         out.append(d.serialize())
     return {"devices": out}
-
+'''
 
 @app.post("/api/devices", dependencies=[Depends(JWTBearer())])
 async def add_devices(device: Device):
@@ -121,7 +122,13 @@ async def devices_id(id: int):
     """
     /devices/{id} - GET - returns devices with id
     """
-    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti', aggregator_id=1 if id < 6 else 2, timeout=10)
+    if id == 1:
+        d = Device(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
+    elif id == 2:
+        d = Device(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
+    else:
+        d = Device(id=id, name=f'demo', ip=f'10.10.10.10', type='Cisco', aggregator_id=id, timeout=10)
+
     return {"device": d.serialize()}
 
 
