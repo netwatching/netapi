@@ -19,7 +19,7 @@ class Device(BaseModel):
 
     def serialize(self):
         out = {
-            "id": self._id,
+            "id": self.id,
             "name": self.name,
             "ip": self.ip,
             "type": self.type,
