@@ -74,7 +74,7 @@ async def get_all_devices():
     """
     /devices - GET - get all devices for the frontend
     """
-    db_col = db["zabix"]["devices"]
+    db_col = db["netdb"]["zabix"]
     devices = []
 
     for x in db_col.find({}, {"_id": 1, "name": 1, "timestamp": 1}):
