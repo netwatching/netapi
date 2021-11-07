@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Body, Depends, Request
+from starlette.middleware.cors import CORSMiddleware
 from app.models import Device
 from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import sign_jwt
@@ -12,6 +13,22 @@ import time
 
 app = FastAPI()
 db = pymongo.MongoClient("mongodb://root:testPassword1234@palguin.htl-vil.local:27017")
+
+origins = [
+    "http://localhost:4200",
+    "http://palguin.htl-vil.local",
+    "0.0.0.0",
+    "localhost"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["POST", "GET"],
+    allow_headers=["*"],
+    max_age=3600,
+)
 
 
 @app.get("/", dependencies=[Depends(JWTBearer())])
