@@ -105,7 +105,7 @@ async def get_all_problems():
     """
     /devices/problems - GET - get all problems of the devices for the frontend
     """
-    db_col = db["zabix"]["devices"]
+    db_col = db["netdb"]["zabix"]
     devices = []
 
     for x in db_col.find({}, {"_id": 1, "problem": 1,}):
