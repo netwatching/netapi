@@ -62,12 +62,14 @@ async def aggregator(id: int):
         out.append(d.serialize())
         d = Device(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
         out.append(d.serialize())
+        d = Device(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10)
+        out.append(d.serialize())
     print(f'------------- {out}')
     return {"devices": out}
 
 
 # --- DEVICES ---
-@app.get("/api/devices", dependencies=[Depends(JWTBearer())])
+@app.get("/api/devices")
 async def get_all_devices():
     """
     /devices - GET - get all devices for the frontend
@@ -81,7 +83,7 @@ async def get_all_devices():
     return devices
 
 
-@app.get("/api/devices/problems", dependencies=[Depends(JWTBearer())])
+@app.get("/api/devices/problems")
 async def get_all_problems():
     """
     /devices/problems - GET - get all problems of the devices for the frontend
