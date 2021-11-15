@@ -98,8 +98,9 @@ async def aggregator(id: int, Authorize: AuthJWT = Depends()):
     print(f'------------- {out}')
     return {"devices": out}
 
-@app.post("/api/aggregator/{id}/modules", dependencies=[Depends(JWTBearer())])
-async def aggregator_modules(id: int, request: Request):
+@app.post("/api/aggregator/{id}/modules")
+async def aggregator_modules(id: int, request: Request, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
     """
