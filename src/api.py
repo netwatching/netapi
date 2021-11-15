@@ -84,6 +84,26 @@ async def aggregator(id: int):
     print(f'------------- {out}')
     return {"devices": out}
 
+@app.post("/api/aggregator/{id}/modules", dependencies=[Depends(JWTBearer())])
+async def aggregator_modules(id: int, request: Request):
+    """
+    /aggregator/{id}/modules - POST - aggregator sends all known modules
+    """
+    if id > 0:
+        try:
+            jsondata = await request.json()
+            print(jsondata)
+            out = {
+                "data": "success",
+                "data_sent": {json.dumps(jsondata)}
+            }
+        except BaseException as e:
+            print(e)
+            out = {"data": "failed", "exception": e}
+    else:
+        out = {"data": "failed"}
+    return out
+
 
 # --- DEVICES ---
 @app.get("/api/devices")
