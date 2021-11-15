@@ -1,8 +1,16 @@
 from pydantic import BaseModel
 from typing import Optional
+from decouple import config
 
 # only for test
 from random import randint
+
+class User(BaseModel):
+    id: int
+
+
+class Settings(BaseModel):
+    authjwt_secret_key: str = config("secret")
 
 
 class Device(BaseModel):

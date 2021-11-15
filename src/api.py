@@ -1,8 +1,7 @@
-from fastapi import FastAPI, Body, Depends, Request
+from fastapi import FastAPI, Depends, Request, HTTPException
 from starlette.middleware.cors import CORSMiddleware
-from src.models import Device
-from src.auth.auth_bearer import JWTBearer
-from src.auth.auth_handler import sign_jwt
+from src.models import Device, User, Settings
+from fastapi_jwt_auth import AuthJWT
 from decouple import config
 import pymongo
 import json
@@ -30,8 +29,11 @@ app.add_middleware(
     max_age=3600,
 )
 
+@AuthJWT.load_config
+def get_config():
+    return Settings()
 
-@app.get("/", dependencies=[Depends(JWTBearer())])
+@app.get("/")
 async def root() -> dict:
     """
     / - GET - for API testing purposes only
@@ -39,19 +41,32 @@ async def root() -> dict:
     return {"NetAPI": "hello"}
 
 
-# --- LOGIN ---
-@app.post("/api/login")
-async def login_user(req: Request):
+# --- LOGIN AND REFRESH---
+
+@app.post('/api/login')
+async def login(req: Request, Authorize: AuthJWT = Depends()):
     """
     /login - POST - authenticates frontend User and returns JWT
     """
     json_body = await req.json()
-    json_body['pw'] = config("pw")
-    return sign_jwt(json_body['id'])
+    if json_body['pw'] != config("pw") :
+        raise HTTPException(status_code=403,detail="Nope")
+    access_token = Authorize.create_access_token(subject=json_body['id'])
+    refresh_token = Authorize.create_refresh_token(subject=json_body['id'], expires_time=9999999999)
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
+@app.post('/api/refresh')
+async def refresh(Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_refresh_token_required()
+    except:
+        raise HTTPException(status_code=403, detail="Refresh missing")
+    current_user = Authorize.get_jwt_subject()
+    new_access_token = Authorize.create_access_token(subject=current_user)
+    return {"access_token": new_access_token}
 
 @app.post("/api/aggregator-login")
-async def aggregator_login(request: Request):
+async def aggregator_login(request: Request, Authorize: AuthJWT = Depends()):
     """
     /aggregator-login - POST - aggregator sends token, gets token and aggregator-id returned
     """
@@ -59,17 +74,16 @@ async def aggregator_login(request: Request):
     token = json_body['token']
     if token == config("token"):
         aggregator_id = 1
-        resp = {
-            "token": sign_jwt(str(aggregator_id))["access_token"],
-            "aggregator_id": aggregator_id
-        }
-        return resp
+        access_token = Authorize.create_access_token(subject=json_body['id'])
+        refresh_token = Authorize.create_refresh_token(subject=json_body['id'])
+        return {"token": access_token, "refresh_token": refresh_token, "aggregator_id": aggregator_id}
     return {""}
 
 
 # --- AGGREGATOR ---
-@app.get("/api/aggregator/{id}", dependencies=[Depends(JWTBearer())])
-async def aggregator(id: int):
+@app.get("/api/aggregator/{id}")
+async def aggregator(id: int, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
     """
@@ -147,8 +161,9 @@ async def devices():
     return {"devices": out}
 '''
 
-@app.post("/api/devices", dependencies=[Depends(JWTBearer())])
-async def add_devices(device: Device):
+@app.post("/api/devices")
+async def add_devices(device: Device, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
     """
     /devices - POST - add a new device and return device
     """
@@ -156,8 +171,9 @@ async def add_devices(device: Device):
     return {"devices": device.serialize()}
 
 
-@app.get("/api/devices/{id}", dependencies=[Depends(JWTBearer())])
-async def devices_id(id: int):
+@app.get("/api/devices/{id}")
+async def devices_id(id: int, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
     """
     /devices/{id} - GET - returns devices with id
     """
@@ -171,8 +187,9 @@ async def devices_id(id: int):
     return {"device": d.serialize()}
 
 
-@app.get("/api/devices/{id}/data/{senor}", dependencies=[Depends(JWTBearer())])
-async def devices_id_sensor(id: int, sensor: str):
+@app.get("/api/devices/{id}/data/{senor}")
+async def devices_id_sensor(id: int, sensor: str, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
     """
     /devices/{id}/data/{senor} - GET -  returns data from sensor and device
     """
@@ -187,8 +204,9 @@ async def devices_id_sensor(id: int, sensor: str):
     return out
 
 
-@app.post("/api/devices/data", dependencies=[Depends(JWTBearer())])
-async def devices_data(request: Request):
+@app.post("/api/devices/data")
+async def devices_data(request: Request, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
     """
     /devices/data - POST - aggregator sends JSON to API
     """

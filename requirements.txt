@@ -9,7 +9,6 @@ httptools==0.2.0
 idna==3.3
 pycparser==2.20
 pydantic==1.8.2
-PyJWT==2.3.0
 pymongo==3.12.1
 python-decouple==3.5
 python-dotenv==0.19.1
@@ -22,3 +21,4 @@ uvloop==0.16.0
 watchgod==0.7
 websockets==10.0
 starlette==0.16.0
+fastapi-jwt-auth==0.5.0
