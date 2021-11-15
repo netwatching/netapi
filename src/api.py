@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Body, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
-from app.models import Device
-from app.auth.auth_bearer import JWTBearer
-from app.auth.auth_handler import sign_jwt
+from src.models import Device
+from src.auth.auth_bearer import JWTBearer
+from src.auth.auth_handler import sign_jwt
 from decouple import config
 import pymongo
 import json
