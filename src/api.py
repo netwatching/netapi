@@ -83,10 +83,14 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
 # --- AGGREGATOR ---
 @app.get("/api/aggregator/{id}")
 async def aggregator(id: int, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     out = []
     if id > 0:
         d = Device(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
@@ -100,10 +104,14 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
 
 @app.post("/api/aggregator/{id}/modules")
 async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     if id > 0:
         try:
             jsondata = await request.json()
@@ -123,10 +131,14 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 # --- DEVICES ---
 @app.get("/api/devices")
 async def get_all_devices(authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /devices - GET - get all devices for the frontend
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     db_col = db["netdb"]["zabix"]
     devices = []
 
@@ -137,10 +149,15 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
 
 
 @app.get("/api/devices/problems")
-async def get_all_problems():
+async def get_all_problems(authorize: AuthJWT = Depends()):
     """
     /devices/problems - GET - get all problems of the devices for the frontend
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     db_col = db["netdb"]["zabix"]
     devices = []
 
@@ -150,35 +167,31 @@ async def get_all_problems():
 
     return devices
 
-'''
-@app.get("/api/devices", dependencies=[Depends(JWTBearer())])
-async def devices():
-    """
-    /devices - GET - returns all devices
-    """
-    out = []
-    for i in range(1, 10):
-        d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='Cisco' if i % 2 else 'Ubiquiti', aggregator_id=1 if i < 6 else 2, timeout=10)
-        out.append(d.serialize())
-    return {"devices": out}
-'''
 
 @app.post("/api/devices")
 async def add_devices(device: Device, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /devices - POST - add a new device and return device
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     device.id = device.get_id()
     return {"devices": device.serialize()}
 
 
 @app.get("/api/devices/{id}")
 async def devices_id(id: int, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /devices/{id} - GET - returns devices with id
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     if id == 1:
         d = Device(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
     elif id == 2:
@@ -191,10 +204,14 @@ async def devices_id(id: int, authorize: AuthJWT = Depends()):
 
 @app.get("/api/devices/{id}/data/{senor}")
 async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /devices/{id}/data/{senor} - GET -  returns data from sensor and device
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     out = {}
     d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti', aggregator_id=1 if id < 6 else 2, timeout=10)
     out["device"] = d.serialize()
@@ -208,10 +225,14 @@ async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()
 
 @app.post("/api/devices/data")
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /devices/data - POST - aggregator sends JSON to API
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=403, detail="Token missing")
+
     db_col = db["netdb"]["zabix"]
     try:
         jsondata = await request.json()
