@@ -48,11 +48,14 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
     """
     /login - POST - authenticates frontend User and returns JWT
     """
-    json_body = await req.json()
-    if json_body['pw'] != config("pw") :
-        raise HTTPException(status_code=403,detail="Nope")
-    access_token = authorize.create_access_token(subject=json_body['id'], headers={"name": json_body['name']})
-    refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=9999999999)
+    try:
+        json_body = await req.json()
+        if json_body['pw'] != config("pw") :
+            raise HTTPException(status_code=400,detail="Unauthorized")
+        access_token = authorize.create_access_token(subject=json_body['id'], headers={"name": json_body['name']})
+        refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=9999999999)
+    except:
+        raise HTTPException(status_code=400, detail="Bad request")
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 @app.post('/api/refresh')
