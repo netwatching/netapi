@@ -74,8 +74,8 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
     token = json_body['token']
     if token == config("token"):
         aggregator_id = 1
-        access_token = authorize.create_access_token(subject=json_body['id'])
-        refresh_token = authorize.create_refresh_token(subject=json_body['id'])
+        access_token = authorize.create_access_token(subject='id')
+        refresh_token = authorize.create_refresh_token(subject='id'g)
         return {"token": access_token, "refresh_token": refresh_token, "aggregator_id": aggregator_id}
     return {""}
 
