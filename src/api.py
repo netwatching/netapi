@@ -55,6 +55,7 @@ async def login(req: Request, Authorize: AuthJWT = Depends()):
     refresh_token = Authorize.create_refresh_token(subject=json_body['id'], expires_time=9999999999)
     return {"access_token": access_token, "refresh_token": refresh_token}
 
+
 @app.post('/api/refresh')
 async def refresh(Authorize: AuthJWT = Depends()):
     try:
@@ -65,6 +66,7 @@ async def refresh(Authorize: AuthJWT = Depends()):
     new_access_token = Authorize.create_access_token(subject=current_user)
     return {"access_token": new_access_token}
 
+
 @app.post("/api/aggregator-login")
 async def aggregator_login(request: Request, Authorize: AuthJWT = Depends()):
     """
@@ -74,8 +76,8 @@ async def aggregator_login(request: Request, Authorize: AuthJWT = Depends()):
     token = json_body['token']
     if token == config("token"):
         aggregator_id = 1
-        access_token = Authorize.create_access_token(subject=json_body['id'])
-        refresh_token = Authorize.create_refresh_token(subject=json_body['id'])
+        access_token = Authorize.create_access_token(subject=aggregator_id)
+        refresh_token = Authorize.create_refresh_token(subject=aggregator_id)
         return {"token": access_token, "refresh_token": refresh_token, "aggregator_id": aggregator_id}
     return {""}
 
@@ -95,8 +97,30 @@ async def aggregator(id: int, Authorize: AuthJWT = Depends()):
         out.append(d.serialize())
         d = Device(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10)
         out.append(d.serialize())
-    print(f'------------- {out}')
     return {"devices": out}
+
+
+@app.post("/api/aggregator/{id}/version")
+async def aggregator(id: int, request: Request, Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
+    """
+    /api/aggregator/{id}/version - POST - version of the aggregator
+    """
+    if id > 0:
+        try:
+            jsondata = await request.json()
+            print(jsondata)
+            out = {
+                "data": "success",
+                "data_sent": {json.dumps(jsondata)}
+            }
+        except BaseException as e:
+            print(e)
+            out = {"data": "failed"}
+    else:
+        out = {"data": "failed"}
+    return out
+
 
 @app.post("/api/aggregator/{id}/modules")
 async def aggregator_modules(id: int, request: Request, Authorize: AuthJWT = Depends()):
@@ -114,7 +138,7 @@ async def aggregator_modules(id: int, request: Request, Authorize: AuthJWT = Dep
             }
         except BaseException as e:
             print(e)
-            out = {"data": "failed", "exception": e}
+            out = {"data": "failed"}
     else:
         out = {"data": "failed"}
     return out
@@ -149,18 +173,6 @@ async def get_all_problems():
 
     return devices
 
-'''
-@app.get("/api/devices", dependencies=[Depends(JWTBearer())])
-async def devices():
-    """
-    /devices - GET - returns all devices
-    """
-    out = []
-    for i in range(1, 10):
-        d = Device(id=i, name=f'device{i}', ip=f'10.10.10.{i}', type='Cisco' if i % 2 else 'Ubiquiti', aggregator_id=1 if i < 6 else 2, timeout=10)
-        out.append(d.serialize())
-    return {"devices": out}
-'''
 
 @app.post("/api/devices")
 async def add_devices(device: Device, Authorize: AuthJWT = Depends()):
@@ -211,12 +223,12 @@ async def devices_data(request: Request, Authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends JSON to API
     """
-    db_col = db["netdb"]["zabix"]
     try:
         jsondata = await request.json()
         data = jsondata['devices']
         for e in data:
             if e['type'] == "Zabbix":
+                db_col = db["netdb"]["zabix"]
                 for v in e['data'][0]['value']:
                     col = v
                     if 'id' in col:
@@ -226,10 +238,11 @@ async def devices_data(request: Request, Authorize: AuthJWT = Depends()):
                         db_col.update_one({'_id': col['_id']}, {"$set": col})
                     else:
                         db_col.insert_one(col)
+
         out = {"data": "success"}
     except BaseException as e:
         print(e)
-        out = {"data": "failed", "exception": e}
+        out = {"data": "failed"}
     return out
 
 
