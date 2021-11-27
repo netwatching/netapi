@@ -154,6 +154,10 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
     """
     /devices - GET - get all devices for the frontend
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     db_col = db["netdb"]["zabix"]
     devices = []
@@ -169,6 +173,10 @@ async def get_all_problems(authorize: AuthJWT = Depends()):
     """
     /devices/problems - GET - get all problems of the devices for the frontend
     """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     db_col = db["netdb"]["zabix"]
     devices = []
