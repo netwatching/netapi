@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import FastAPI, Depends, Request, HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from src.models import Device, User, Settings
@@ -33,6 +35,7 @@ app.add_middleware(
 def get_config():
     return Settings()
 
+
 @app.get("/")
 async def root() -> dict:
     """
@@ -48,18 +51,22 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
     """
     /login - POST - authenticates frontend User and returns JWT
     """
-#    try:
     json_body = await req.json()
-    if json_body['pw'] != config("pw") :
-        raise HTTPException(status_code=401,detail="Unauthorized")
+    if json_body['pw'] != config("pw"):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    expires = datetime.timedelta(days=1)
     access_token = authorize.create_access_token(
         subject=json_body['id'],
-        headers={"name": json_body['name']}
+        headers={"name": json_body['name']},
+        expires_time=expires
     )
-    refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=9999999999)
-    return {"access_token": access_token, "refresh_token": refresh_token}
-#    except Exception as ex:
-#        raise HTTPException(status_code=400, detail=ex)
+    refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=False)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires": authorize.get_raw_jwt(access_token)["exp"]
+    }
 
 
 @app.post('/api/refresh')
@@ -101,7 +108,8 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
         out.append(d.serialize())
         d = Device(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
         out.append(d.serialize())
-        d = Device(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10)
+        d = Device(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id,
+                   timeout=10)
         out.append(d.serialize())
     print(f'------------- {out}')
     return {"devices": out}
@@ -184,7 +192,7 @@ async def get_all_problems(authorize: AuthJWT = Depends()):
     db_col = db["netdb"]["zabix"]
     devices = []
 
-    for x in db_col.find({}, {"_id": 1, "problem": 1,}):
+    for x in db_col.find({}, {"_id": 1, "problem": 1, }):
         x["device_id"] = x.pop('_id')
         devices.append(x)
 
@@ -226,12 +234,13 @@ async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()
     """
 
     out = {}
-    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti', aggregator_id=1 if id < 6 else 2, timeout=10)
+    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti',
+               aggregator_id=1 if id < 6 else 2, timeout=10)
     out["device"] = d.serialize()
     data = {}
     t = time.time()
     for i in range(100):
-        data[(t+i)] = randint(10, 20)
+        data[(t + i)] = randint(10, 20)
     out[sensor] = data
     return out
 
@@ -263,5 +272,3 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
         print(e)
         out = {"data": "failed"}
     return out
-
-
