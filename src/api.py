@@ -54,8 +54,7 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
         raise HTTPException(status_code=401,detail="Unauthorized")
     access_token = authorize.create_access_token(
         subject=json_body['id'],
-        headers={"name": json_body['name']},
-        expires_time=6000
+        headers={"name": json_body['name']}
     )
     refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=9999999999)
     return {"access_token": access_token, "refresh_token": refresh_token}
