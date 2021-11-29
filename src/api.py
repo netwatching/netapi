@@ -52,7 +52,11 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
     json_body = await req.json()
     if json_body['pw'] != config("pw") :
         raise HTTPException(status_code=401,detail="Unauthorized")
-    access_token = authorize.create_access_token(subject=json_body['id'], headers={"name": json_body['name']})
+    access_token = authorize.create_access_token(
+        subject=json_body['id'],
+        headers={"name": json_body['name']},
+        expires_time=6000
+    )
     refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=9999999999)
     return {"access_token": access_token, "refresh_token": refresh_token}
 #    except Exception as ex:
@@ -63,7 +67,7 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
 async def refresh(authorize: AuthJWT = Depends()):
     try:
         authorize.jwt_refresh_token_required()
-    except authorize.exceptions.InvalidHeaderError:
+    except:
         raise HTTPException(status_code=403, detail="Refresh missing")
     current_user = authorize.get_jwt_subject()
     new_access_token = authorize.create_access_token(subject=current_user)
