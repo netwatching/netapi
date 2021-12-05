@@ -1,19 +1,21 @@
-import datetime
-
 from fastapi import FastAPI, Depends, Request, HTTPException
 from starlette.middleware.cors import CORSMiddleware
-from src.models import Device, User, Settings
+from src.models import oldDevice, User, Settings
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 import pymongo
 import json
+import datetime
+
+from src.dbio import DBIO
 
 # only for test
 from random import randint
 import time
 
 app = FastAPI()
-db = pymongo.MongoClient("mongodb://root:testPassword1234@palguin.htl-vil.local:27017")
+#db = pymongo.MongoClient("mongodb://root:testPassword1234@palguin.htl-vil.local:27017")
+db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
 
 origins = [
     "http://localhost:4200",
@@ -104,12 +106,11 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
 
     out = []
     if id > 0:
-        d = Device(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
+        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
         out.append(d.serialize())
-        d = Device(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
+        d = oldDevice(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
         out.append(d.serialize())
-        d = Device(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id,
-                   timeout=10)
+        d = oldDevice(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10)
         out.append(d.serialize())
     print(f'------------- {out}')
     return {"devices": out}
@@ -142,7 +143,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
     """
-
+    authorize.jwt_required()
     if id > 0:
         try:
             jsondata = await request.json()
@@ -170,11 +171,11 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
     except:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    db_col = db["netdb"]["zabix"]
+    #db_col = db["netdb"]["zabix"]
     devices = []
 
-    for x in db_col.find({}, {"_id": 1, "name": 1, "timestamp": 1}):
-        devices.append(x)
+    #for x in db_col.find({}, {"_id": 1, "name": 1, "timestamp": 1}):
+    #    devices.append(x)
 
     return devices
 
@@ -189,18 +190,18 @@ async def get_all_problems(authorize: AuthJWT = Depends()):
     except:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    db_col = db["netdb"]["zabix"]
+    #db_col = db["netdb"]["zabix"]
     devices = []
 
-    for x in db_col.find({}, {"_id": 1, "problem": 1, }):
-        x["device_id"] = x.pop('_id')
-        devices.append(x)
+    #for x in db_col.find({}, {"_id": 1, "problem": 1, }):
+    #    x["device_id"] = x.pop('_id')
+    #    devices.append(x)
 
     return devices
 
 
 @app.post("/api/devices")
-async def add_devices(device: Device, authorize: AuthJWT = Depends()):
+async def add_devices(device: oldDevice, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
     """
     /devices - POST - add a new device and return device
@@ -217,11 +218,11 @@ async def devices_id(id: int, authorize: AuthJWT = Depends()):
     /devices/{id} - GET - returns devices with id
     """
     if id == 1:
-        d = Device(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
+        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
     elif id == 2:
-        d = Device(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
+        d = oldDevice(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
     else:
-        d = Device(id=id, name=f'demo', ip=f'10.10.10.10', type='Cisco', aggregator_id=id, timeout=10)
+        d = oldDevice(id=id, name=f'demo', ip=f'10.10.10.10', type='Cisco', aggregator_id=id, timeout=10)
 
     return {"device": d.serialize()}
 
@@ -234,8 +235,7 @@ async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()
     """
 
     out = {}
-    d = Device(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti',
-               aggregator_id=1 if id < 6 else 2, timeout=10)
+    d = oldDevice(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti', aggregator_id=1 if id < 6 else 2, timeout=10)
     out["device"] = d.serialize()
     data = {}
     t = time.time()
@@ -247,25 +247,27 @@ async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()
 
 @app.post("/api/devices/data")
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
+    #authorize.jwt_required()
     """
     /devices/data - POST - aggregator sends JSON to API
     """
     try:
         jsondata = await request.json()
-        data = jsondata['devices']
-        for e in data:
-            if e['type'] == "Zabbix":
-                db_col = db["netdb"]["zabix"]
-                for v in e['data'][0]['value']:
-                    col = v
-                    if 'id' in col:
-                        col['_id'] = col['id']
-                        col.pop("id")
-                    if db_col.find({'_id': col['_id']}).count() > 0:
-                        db_col.update_one({'_id': col['_id']}, {"$set": col})
+        for item in jsondata['devices']:
+            id = item['id']
+            name = item['name']
+            current_device_id = db.add_device(device=name, category_id=1, config_signature=None, config_fields=None)
+            for sd in item['static_data']:
+                identifier = f";{sd['identifier']}" if sd['identifier'] is not None else ''
+                feature = f"{sd['key']}{identifier}"
+                current_feature_id = db.add_feature(feature=feature, device_id=current_device_id)
+                values = sd['value']
+                for key in values:
+                    value = values[key]
+                    if isinstance(value, str):
+                        db.add_value_string(feature_id=current_feature_id, key=key, value=value)
                     else:
-                        db_col.insert_one(col)
+                        db.add_value_numeric(feature_id=current_feature_id, key=key, value=value)
 
         out = {"data": "success"}
     except BaseException as e:
