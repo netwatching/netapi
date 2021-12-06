@@ -335,7 +335,21 @@ async def get_all_features(authorize: AuthJWT = Depends()):
     except:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    return db.get_features()
+    features = db.get_features()
+    json = []
+    out = []
+
+    for f in features:
+        json.append({"id": f.id, "feature": f.feature, "device_id": f.device_id})
+
+    for o in json:
+        if ";" in o["feature"]:
+            x = o["feature"].split(";")
+            o["feature"] = x[0]
+            o["number"] = x[1]
+            out.append(o)
+
+    return out
 
 
 # --- Category --- #
