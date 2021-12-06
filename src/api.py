@@ -349,6 +349,28 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     return db.get_categories()
 
 
+# --- Alerts --- #
+
+@app.get("/api/alerts")
+async def get_all_alerts(authorize: AuthJWT = Depends()):
+    """
+    /categories - GET - get all alerts
+    """
+    authorize.jwt_required()
+
+    return db.get_alerts()
+
+
+@app.get("/api/alerts/{did}")
+async def get_all_categories(did: int, authorize: AuthJWT = Depends()):
+    """
+    /categories - GET - get all alerts by device id
+    """
+    authorize.jwt_required()
+
+    return db.get_alerts_by_id(did)
+
+
 @app.exception_handler(AuthJWTException)
 def authjwt_exception_handler(request: Request, exc: AuthJWTException):
     return JSONResponse(

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from decouple import config
-from sqlalchemy import Numeric, ForeignKey, Column, String, JSON, Integer
+from sqlalchemy import Numeric, ForeignKey, Column, String, JSON, Integer, TIMESTAMP
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy_repr as repr
@@ -73,8 +73,6 @@ class Device(Base):
     __tablename__ = "Device"
     id = Column(Integer, primary_key=True)
     device = Column(String)
-    #config_signature = Column(JSON)
-    #config_fields = Column(JSON)
     features = relationship('Feature', back_populates="device", lazy='joined')
     category_id = Column(Integer, ForeignKey('Category.id'))
     category = relationship('Category', back_populates="devices")
@@ -126,3 +124,16 @@ class Value_String(Base):
         self.key = key
         self.value = value
         self.feature = feature
+
+class Alert(Base):
+    __tablename__ = "Alert"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(TIMESTAMP)
+    problem = Column(String)
+    severity = Column(Integer)
+    device_id = Column(Integer, ForeignKey('Device.id'))
+
+    def __init__(self, category, config_signature, config_fields):
+        self.category = category
+        self.config_signature = config_signature
+        self.config_fields = config_fields

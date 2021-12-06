@@ -1,7 +1,7 @@
 import sqlalchemy as sql
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
-from src.models import Category, Device, Feature, Value_Numeric, Value_String
+from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert
 
 
 class DBIO:
@@ -62,7 +62,7 @@ class DBIO:
         with self.session.begin() as session:
             devices = session.query(Device.id,
                                     Device.category_id,
-                                    Device.device,
+                                    Device.device
                                     ).all()
             session.close()
         return devices
@@ -70,7 +70,7 @@ class DBIO:
 
     def get_device_by_id(self, id: int):
         with self.session.begin() as session:
-            devices = session.query(Device).filter(Device.id == id).all()
+            devices = session.query(Device.id, Device.category_id, Device.device).filter(Device.id == id).all()
             session.close()
         return devices
 
@@ -94,3 +94,23 @@ class DBIO:
             cat = session.query(Category.id, Category.category).all()
             session.close()
         return cat
+
+
+    def get_alerts(self):
+        with self.session.begin() as session:
+            alert = session.query(Alert.id,  Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity).all()
+            session.close()
+        return alert
+
+
+    def get_alerts_by_id(self, did):
+        with self.session.begin() as session:
+            alert = session.query(
+                Alert.id,
+                Alert.timestamp,
+                Alert.device_id,
+                Alert.problem,
+                Alert.severity
+            ).filter(Alert.device_id == did).all()
+            session.close()
+        return alert
