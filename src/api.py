@@ -205,8 +205,8 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
     if id is not None:
         out = {}
         dic = {}
-        ifs = {}
-        ips = {}
+        ifs = []
+        ips = []
         features = db.get_device_features_by_id(id)
 
         for f in features:
@@ -216,11 +216,9 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
                 dic[val_n.key] = val_n.value
 
             if "interfaces;" in f.feature:
-                if_num = f.feature.split(";")
-                ifs[f"{if_num[1]}"] = dic
+                ifs.append(dic)
             elif "ipAddresses;" in f.feature:
-                ip_num = f.feature.split(";")
-                ips[f"{ip_num[1]}"] = dic
+                ips.append(dic)
             else:
                 out[f.feature] = dic
             dic = {}
