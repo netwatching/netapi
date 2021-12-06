@@ -188,7 +188,7 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
     return db.get_devices()
 
 
-@app.get("/api/device/{id}")
+@app.get("/api/devices/{id}")
 async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns devices with id
@@ -204,7 +204,7 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     return device
 
 
-@app.get("/api/device/{id}/features")
+@app.get("/api/devices/{id}/features")
 async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns devices with id
