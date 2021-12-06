@@ -192,7 +192,7 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     if id is not None:
         device = db.get_device_by_id(id)
 
-    return device
+    return device[0]
 
 
 @app.get("/api/devices/{id}/features")
