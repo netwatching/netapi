@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, Request, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models import oldDevice, User, Settings
 from fastapi_jwt_auth import AuthJWT
@@ -70,10 +72,8 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
 
 @app.post('/api/refresh')
 async def refresh(authorize: AuthJWT = Depends()):
-    try:
-        authorize.jwt_refresh_token_required()
-    except:
-        raise HTTPException(status_code=403, detail="Refresh missing")
+    authorize.jwt_refresh_token_required()
+
     current_user = authorize.get_jwt_subject()
     new_access_token = authorize.create_access_token(subject=current_user)
     return {"access_token": new_access_token}
@@ -167,10 +167,7 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
     """
     /devices - GET - get all devices and what belongs to it for the frontend
     """
-    try:
-        authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    authorize.jwt_required()
 
     return db.get_full_devices()
 
@@ -180,10 +177,7 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
     """
     /devices - GET - get all devices in a base version for the frontend
     """
-    try:
-        authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    authorize.jwt_required()
 
     return db.get_devices()
 
@@ -193,10 +187,7 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns devices with id
     """
-    try:
-        authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    authorize.jwt_required()
 
     if id is not None:
         device = db.get_device_by_id(id)
@@ -209,10 +200,7 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns devices with id
     """
-    try:
-        authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    authorize.jwt_required()
 
     if id is not None:
         out = {}
@@ -330,10 +318,7 @@ async def get_all_features(authorize: AuthJWT = Depends()):
     """
     /features - GET - get all available features
     """
-    try:
-        authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    authorize.jwt_required()
 
     features = db.get_features()
     json = []
@@ -361,9 +346,14 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories
     """
-    try:
-        authorize.jwt_required()
-    except:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    authorize.jwt_required()
 
     return db.get_categories()
+
+
+@app.exception_handler(AuthJWTException)
+def authjwt_exception_handler(request: Request, exc: AuthJWTException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message}
+    )
