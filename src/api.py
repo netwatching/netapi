@@ -196,7 +196,7 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
 
 
 @app.get("/api/devices/{id}/features")
-async def device_by_id(id: int, authorize: AuthJWT = Depends()):
+async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns devices with id
     """
@@ -225,10 +225,8 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
                 out[f.feature] = dic
             dic = {}
 
-        if ifs:
-            out["interfaces"] = ifs
-        if ips:
-            out["ipAddresses"] = ips
+        out["interfaces"] = ifs
+        out["ipAddresses"] = ips
 
     return out
 
