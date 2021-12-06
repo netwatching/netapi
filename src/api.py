@@ -348,6 +348,8 @@ async def get_all_features(authorize: AuthJWT = Depends()):
             o["feature"] = x[0]
             o["number"] = x[1]
             out.append(o)
+        else:
+            out.append(o)
 
     return out
 
