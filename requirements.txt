@@ -22,3 +22,10 @@ watchgod==0.7
 websockets==10.0
 starlette==0.16.0
 fastapi-jwt-auth==0.5.0
+
+SQLAlchemy~=1.4.27
+pip~=21.1.2
+wheel~=0.36.2
+setuptools~=57.0.0
+sqlalchemy-repr~=0.0.2
+PyMySQL~=1.0.2

@@ -50,3 +50,49 @@ class DBIO:
             session.commit()
         return id
 
+
+    def get_full_devices(self):
+        with self.session.begin() as session:
+            devices = session.query(Device).all()
+            session.close()
+        return devices
+
+
+    def get_devices(self):
+        with self.session.begin() as session:
+            devices = session.query(Device.id,
+                                    Device.category_id,
+                                    Device.device,
+                                    Device.config_signature,
+                                    Device.config_fields
+                                    ).all()
+            session.close()
+        return devices
+
+
+    def get_device_by_id(self, id: int):
+        with self.session.begin() as session:
+            devices = session.query(Device).filter(Device.id == id).all()
+            session.close()
+        return devices
+
+
+    def get_device_features_by_id(self, id: int):
+        with self.session.begin() as session:
+            feat = session.query(Feature).filter(Feature.device_id == id).all()
+            session.close()
+        return feat
+
+
+    def get_features(self):
+        with self.session.begin() as session:
+            feat = session.query(Feature.id, Feature.feature, Feature.device_id).all()
+            session.close()
+        return feat
+
+
+    def get_categories(self):
+        with self.session.begin() as session:
+            cat = session.query(Category.id, Category.config_fields, Category.config_signature, Category.category).all()
+            session.close()
+        return cat

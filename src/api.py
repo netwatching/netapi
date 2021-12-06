@@ -3,7 +3,6 @@ from starlette.middleware.cors import CORSMiddleware
 from src.models import oldDevice, User, Settings
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
-import pymongo
 import json
 import datetime
 
@@ -14,7 +13,6 @@ from random import randint
 import time
 
 app = FastAPI()
-#db = pymongo.MongoClient("mongodb://root:testPassword1234@palguin.htl-vil.local:27017")
 db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
 
 origins = [
@@ -46,7 +44,7 @@ async def root() -> dict:
     return {"NetAPI": "hello"}
 
 
-# --- LOGIN AND REFRESH---
+# --- LOGIN AND REFRESH--- #
 
 @app.post('/api/login')
 async def login(req: Request, authorize: AuthJWT = Depends()):
@@ -66,8 +64,7 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
     refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=False)
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
-        "expires": authorize.get_raw_jwt(access_token)["exp"]
+        "refresh_token": refresh_token
     }
 
 
@@ -97,7 +94,8 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
     return {""}
 
 
-# --- AGGREGATOR ---
+# --- AGGREGATOR --- #
+
 @app.get("/api/aggregator/{id}")
 async def aggregator(id: int, authorize: AuthJWT = Depends()):
     """
@@ -160,44 +158,67 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
     return out
 
 
-# --- DEVICES ---
+# --- DEVICES --- #
+
+@app.get("/api/devices/full")
+async def get_all_devices(authorize: AuthJWT = Depends()):
+    """
+    /devices - GET - get all devices and what belongs to it for the frontend
+    """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return db.get_full_devices()
+
+
+
 @app.get("/api/devices")
 async def get_all_devices(authorize: AuthJWT = Depends()):
     """
-    /devices - GET - get all devices for the frontend
+    /devices - GET - get all devices in a base version for the frontend
     """
     try:
         authorize.jwt_required()
     except:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    #db_col = db["netdb"]["zabix"]
-    devices = []
-
-    #for x in db_col.find({}, {"_id": 1, "name": 1, "timestamp": 1}):
-    #    devices.append(x)
-
-    return devices
+    return db.get_devices()
 
 
-@app.get("/api/devices/problems")
-async def get_all_problems(authorize: AuthJWT = Depends()):
+@app.get("/api/device/{id}")
+async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
-    /devices/problems - GET - get all problems of the devices for the frontend
+    /devices/{id} - GET - returns devices with id
     """
     try:
         authorize.jwt_required()
     except:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    #db_col = db["netdb"]["zabix"]
-    devices = []
+    if id is not None:
+        device = db.get_device_by_id(id)
 
-    #for x in db_col.find({}, {"_id": 1, "problem": 1, }):
-    #    x["device_id"] = x.pop('_id')
-    #    devices.append(x)
+    return device
 
-    return devices
+
+@app.get("/api/device/{id}/features")
+async def device_by_id(id: int, authorize: AuthJWT = Depends()):
+    """
+    /devices/{id} - GET - returns devices with id
+    """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if id is not None:
+        features = db.get_device_features_by_id(id)
+
+    return features
+
+
 
 
 @app.post("/api/devices")
@@ -274,3 +295,33 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
         print(e)
         out = {"data": "failed"}
     return out
+
+
+# --- Features --- #
+
+@app.get("/api/features")
+async def get_all_features(authorize: AuthJWT = Depends()):
+    """
+    /features - GET - get all available features
+    """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return db.get_features()
+
+
+# --- Category --- #
+
+@app.get("/api/categories")
+async def get_all_categories(authorize: AuthJWT = Depends()):
+    """
+    /categories - GET - get all available categories
+    """
+    try:
+        authorize.jwt_required()
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return db.get_categories()
