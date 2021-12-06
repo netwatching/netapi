@@ -104,11 +104,13 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
 
     out = []
     if id > 0:
-        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
+        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id,
+                      timeout=10)
         out.append(d.serialize())
         d = oldDevice(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
         out.append(d.serialize())
-        d = oldDevice(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10)
+        d = oldDevice(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id,
+                      timeout=10)
         out.append(d.serialize())
     print(f'------------- {out}')
     return {"devices": out}
@@ -173,7 +175,6 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
     return db.get_full_devices()
 
 
-
 @app.get("/api/devices")
 async def get_all_devices(authorize: AuthJWT = Depends()):
     """
@@ -214,11 +215,34 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     if id is not None:
+        out = {}
+        dict = {}
+        ifs = {}
+        ips = {}
         features = db.get_device_features_by_id(id)
 
-    return features
+        for f in features:
+            for val_s in f.value_strings:
+                dict[val_s.key] = val_s.value
+            for val_n in f.value_numerics:
+                dict[val_n.key] = val_n.value
 
+            if "interfaces;" in f.feature:
+                if_num = f.feature.split(";")
+                ifs[f"{if_num[1]}"] = dict
+            elif "ipAddresses;" in f.feature:
+                ip_num = f.feature.split(";")
+                ips[f"{ip_num[1]}"] = dict
+            else:
+                out[f.feature] = dict
+            dict = {}
 
+        if ifs:
+            out["interfaces"] = ifs
+        if ips:
+            out["ipAddresses"] = ips
+
+    return out
 
 
 @app.post("/api/devices")
@@ -239,7 +263,8 @@ async def devices_id(id: int, authorize: AuthJWT = Depends()):
     /devices/{id} - GET - returns devices with id
     """
     if id == 1:
-        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id, timeout=10)
+        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id,
+                      timeout=10)
     elif id == 2:
         d = oldDevice(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
     else:
@@ -256,7 +281,8 @@ async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()
     """
 
     out = {}
-    d = oldDevice(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti', aggregator_id=1 if id < 6 else 2, timeout=10)
+    d = oldDevice(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti',
+                  aggregator_id=1 if id < 6 else 2, timeout=10)
     out["device"] = d.serialize()
     data = {}
     t = time.time()
@@ -268,7 +294,7 @@ async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()
 
 @app.post("/api/devices/data")
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
-    #authorize.jwt_required()
+    # authorize.jwt_required()
     """
     /devices/data - POST - aggregator sends JSON to API
     """

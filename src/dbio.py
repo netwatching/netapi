@@ -63,8 +63,6 @@ class DBIO:
             devices = session.query(Device.id,
                                     Device.category_id,
                                     Device.device,
-                                    Device.config_signature,
-                                    Device.config_fields
                                     ).all()
             session.close()
         return devices
@@ -93,6 +91,6 @@ class DBIO:
 
     def get_categories(self):
         with self.session.begin() as session:
-            cat = session.query(Category.id, Category.config_fields, Category.config_signature, Category.category).all()
+            cat = session.query(Category.id, Category.category).all()
             session.close()
         return cat
