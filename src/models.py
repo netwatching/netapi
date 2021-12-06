@@ -73,8 +73,8 @@ class Device(Base):
     __tablename__ = "Device"
     id = Column(Integer, primary_key=True)
     device = Column(String)
-    config_signature = Column(JSON)
-    config_fields = Column(JSON)
+    #config_signature = Column(JSON)
+    #config_fields = Column(JSON)
     features = relationship('Feature', back_populates="device", lazy='joined')
     category_id = Column(Integer, ForeignKey('Category.id'))
     category = relationship('Category', back_populates="devices")
