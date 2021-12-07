@@ -4,31 +4,30 @@ from sqlalchemy.orm import sessionmaker
 from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert
 
 
+import mysql.connector
+from mysql.connector import Error
+
 class DBIO:
     def __init__(self, db_path: str):
         if db_path != '':
             self.db_path = db_path
             self.engine = sql.create_engine(self.db_path)
             self.session = sessionmaker(bind=self.engine)
+            self.connection = mysql.connector.connect(host='palguin.htl-vil.local', database='netdb', user='netdb',password='NPlyaVeGq5rse715JvD6', auth_plugin='mysql_native_password')
 
-    def add_value_numeric(self, feature_id: int, key: str, value):
-        # print(f'Value_Numeric: Key: {key} - Value: {value} - feature_id: {feature_id}')
-        with self.session.begin() as session:
-            f = session.query(Feature).select_from(Feature).filter(Feature.id == feature_id).all()
-            vn = Value_Numeric(key=key, value=value, feature=f[0])
-            session.add(vn)
-            session.commit()
+    def add_value_numeric(self, cursor, device_id: int, feature_name: str, key: str, value):
+        args = (device_id, feature_name, key, value)
+        cursor.callproc('insValnByFeaNameAndDev', args)
 
-    def add_value_string(self, feature_id: int, key: str, value: str):
-        # print(f'Value_String: Key: {key} - Value: {value} - feature_id: {feature_id}')
-        with self.session.begin() as session:
-            f = session.query(Feature).select_from(Feature).filter(Feature.id == feature_id).all()
-            vs = Value_String(key=key, value=value, feature=f[0])
-            session.add(vs)
-            session.commit()
+    def add_value_string(self, cursor, device_id: int, feature_name: str, key: str, value):
+        args = (device_id, feature_name, key, value)
+        cursor.callproc('insValsByFeaNameAndDev', args)
+
+    def add_event(self, cursor, timestamp, severity: str, problem: str, hostname: str, ip: str = None):
+        args = (timestamp, severity, problem, hostname, ip)
+        cursor.callproc('insAleWithTimestampAndSeverityAndProblemByDevHostnameOrIp', args)
 
     def add_feature(self, feature: str, device_id: int):
-        # print(f'Feature: feature: {feature} - device_id: {device_id}')
         with self.session.begin() as session:
             d = session.query(Device).select_from(Device).filter(Device.id == device_id).all()
             f = Feature(feature=feature, device=d[0])
@@ -38,7 +37,6 @@ class DBIO:
         return id
 
     def add_device(self, device: str, category_id: int, config_signature, config_fields):
-        # print(f'Device: device: {device} - category_id: {category_id} - config_signature: {config_signature} - config_fields: {config_fields}')
         with self.session.begin() as session:
             cat = session.query(Category).select_from(Category).filter(Category.id == 1).all()
             if len(cat) < 1:
