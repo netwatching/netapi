@@ -101,19 +101,18 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
     """
-
+    authorize.jwt_required()
     out = []
     if id > 0:
-        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id,
+        d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id,
                       timeout=10)
         out.append(d.serialize())
-        d = oldDevice(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
+        d = oldDevice(id=2, name=f'Ubi', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
         out.append(d.serialize())
         d = oldDevice(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id,
                       timeout=10)
         out.append(d.serialize())
-    print(f'------------- {out}')
-    return {"devices": out}
+    return out
 
 
 @app.post("/api/aggregator/{id}/version")
@@ -278,13 +277,14 @@ async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()
 
 @app.post("/api/devices/data")
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
-    # authorize.jwt_required()
+    authorize.jwt_required()
     """
     /devices/data - POST - aggregator sends JSON to API
     """
     try:
         jsondata = await request.json()
         cursor = db.connection.cursor()
+
         for item in jsondata['devices']:
             id = item['id']
             name = item['name']

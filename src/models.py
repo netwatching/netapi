@@ -37,21 +37,32 @@ class oldDevice(BaseModel):  # old device model, should be deleted
         out = {
             "id": self.id,
             "name": self.name,
+            "timeout": self.timeout,
             "ip": self.ip,
             "type": self.type,
-            "aggregator_id": self.aggregator_id,
-            "timeout": self.timeout
-        }
+            "modules": [
+              {
+                "name": "snmp",
+                "config": {}
+              }
+            ]
+          }
         return out
 
     def serialize_without_id(self):
         out = {
+            "id": self.id,
             "name": self.name,
+            "timeout": self.timeout,
             "ip": self.ip,
             "type": self.type,
-            "aggregator_id": self.aggregator_id,
-            "timeout": self.timeout
-        }
+            "modules": [
+              {
+                "name": "snmp",
+                "config": {}
+              }
+            ]
+          }
         return out
 
 
