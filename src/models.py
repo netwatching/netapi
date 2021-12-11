@@ -28,40 +28,36 @@ class oldDevice(BaseModel):  # old device model, should be deleted
     type: str
     aggregator_id: int
     timeout: int
+    module_name: list
 
     def get_id(self):
         # gets id from db after adding device to it
         return randint(0, 1000)
 
     def serialize(self):
+        modules = []
+        for m in self.module_name:
+            modules.append({"name": m, "config": {}})
         out = {
             "id": self.id,
             "name": self.name,
             "timeout": self.timeout,
             "ip": self.ip,
             "type": self.type,
-            "modules": [
-              {
-                "name": "snmp",
-                "config": {}
-              }
-            ]
+            "modules": modules
           }
         return out
 
     def serialize_without_id(self):
+        modules = []
+        for m in self.module_name:
+            modules.append({"name": m, "config": {}})
         out = {
-            "id": self.id,
             "name": self.name,
             "timeout": self.timeout,
             "ip": self.ip,
             "type": self.type,
-            "modules": [
-              {
-                "name": "snmp",
-                "config": {}
-              }
-            ]
+            "modules": modules
           }
         return out
 

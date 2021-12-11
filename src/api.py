@@ -104,13 +104,9 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
     out = []
     if id > 0:
-        d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id,
-                      timeout=10)
+        d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbi', aggregator_id=id, timeout=10, module_name=['problems', 'events'])
         out.append(d.serialize())
-        d = oldDevice(id=2, name=f'Ubi', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
-        out.append(d.serialize())
-        d = oldDevice(id=3, name=f'CISCO_HTL-R154-PoE-Access', ip=f'172.31.8.81', type='Cisco', aggregator_id=id,
-                      timeout=10)
+        d = oldDevice(id=2, name=f'Ubi', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10, module_name=['snmp'])
         out.append(d.serialize())
     return out
 
