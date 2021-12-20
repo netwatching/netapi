@@ -1,12 +1,10 @@
-FROM python:3-alpine
+FROM python:3.9-slim-buster
 ENV PYTHONUNBUFFERED definitely
 ENV TZ Europe/Vienna
 WORKDIR /usr/src/app
 
-COPY requirements.txt ./
-
-RUN apk add --no-cache --update gcc libc-dev linux-headers git && rm -rf /var/cache/apk/*
-RUN pip3 install --no-cache-dir -r requirements.txt
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
