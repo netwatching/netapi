@@ -46,7 +46,7 @@ async def root() -> dict:
     return {"NetAPI": "hello"}
 
 
-# --- LOGIN AND REFRESH--- #
+# --- AUTHENTICATION--- #
 
 @app.post('/api/login')
 async def login(req: Request, authorize: AuthJWT = Depends()):
@@ -72,6 +72,9 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
 
 @app.post('/api/refresh')
 async def refresh(authorize: AuthJWT = Depends()):
+    """
+    /refresh - POST - expired access token can be renewed
+    """
     authorize.jwt_refresh_token_required()
 
     current_user = authorize.get_jwt_subject()
@@ -180,7 +183,7 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
 @app.get("/api/devices/{id}")
 async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
-    /devices/{id} - GET - returns devices with id
+    /devices/{id} - GET - returns devices with specified id
     """
     authorize.jwt_required()
 
@@ -233,23 +236,6 @@ async def add_devices(device: oldDevice, authorize: AuthJWT = Depends()):
 
     device.id = device.get_id()
     return {"devices": device.serialize()}
-
-
-@app.get("/api/devices/{id}")
-async def devices_id(id: int, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
-    """
-    /devices/{id} - GET - returns devices with id
-    """
-    if id == 1:
-        d = oldDevice(id=1, name=f'zabbixServer', ip=f'zabbix.htl-vil.local', type='Zabbix', aggregator_id=id,
-                      timeout=10)
-    elif id == 2:
-        d = oldDevice(id=2, name=f'schulSwitch', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10)
-    else:
-        d = oldDevice(id=id, name=f'demo', ip=f'10.10.10.10', type='Cisco', aggregator_id=id, timeout=10)
-
-    return {"device": d.serialize()}
 
 
 @app.get("/api/devices/{id}/data/{senor}")
@@ -371,6 +357,8 @@ async def get_all_categories(did: int, authorize: AuthJWT = Depends()):
 
     return db.get_alerts_by_id(did)
 
+
+# --- Exception Handling --- #
 
 @app.exception_handler(AuthJWTException)
 def authjwt_exception_handler(request: Request, exc: AuthJWTException):
