@@ -132,6 +132,7 @@ class Value_String(Base):
         self.value = value
         self.feature = feature
 
+
 class Alert(Base):
     __tablename__ = "Alert"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -144,3 +145,21 @@ class Alert(Base):
         self.category = category
         self.config_signature = config_signature
         self.config_fields = config_fields
+
+
+class Aggregator(Base):
+    __tablename__ = "Aggregator"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    version = Column(String)
+    token = Column(String)
+
+    def __init__(self, version, token):
+        self.version = version
+        self.token = token
+
+
+class Module(Base):
+    __tablename__ = "Module"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    config_fields = Column(JSON)
+    device_id = Column(Integer, ForeignKey('Device.id'))

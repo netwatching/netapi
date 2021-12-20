@@ -1,7 +1,8 @@
 import sqlalchemy as sql
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
-from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert
+from sqlalchemy import asc, desc
+from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module
 
 
 import mysql.connector
@@ -58,17 +59,18 @@ class DBIO:
 
     def get_devices(self):
         with self.session.begin() as session:
-            devices = session.query(Device.id,
-                                    Device.category_id,
-                                    Device.device
-                                    ).all()
+            devices = session\
+                .query(Device.id, Device.category_id, Device.device, Category.category)\
+                .join(Category, Device.category_id == Category.id) \
+                .order_by(Device.id.asc()) \
+                .all()
             session.close()
         return devices
 
 
     def get_device_by_id(self, id: int):
         with self.session.begin() as session:
-            devices = session.query(Device.id, Device.category_id, Device.device).filter(Device.id == id).all()
+            devices = session.query(Device).filter(Device.id == id).all()
             session.close()
         return devices
 
@@ -96,19 +98,61 @@ class DBIO:
 
     def get_alerts(self):
         with self.session.begin() as session:
-            alert = session.query(Alert.id,  Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity).all()
+            alert = session\
+                .query(Alert.id,  Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity)\
+                .order_by(Alert.timestamp.desc())\
+                .all()
             session.close()
         return alert
 
 
-    def get_alerts_by_id(self, did):
+    def get_alerts_by_device_id(self, did, sever):
         with self.session.begin() as session:
-            alert = session.query(
-                Alert.id,
-                Alert.timestamp,
-                Alert.device_id,
-                Alert.problem,
-                Alert.severity
-            ).filter(Alert.device_id == did).all()
+            alert = session\
+                .query( Alert.id, Alert.timestamp, Alert.device_id, Alert.problem,  Alert.severity)\
+                .filter(Alert.device_id == did)\
+                .filter(Alert.severity >= sever) \
+                .order_by(Alert.timestamp.desc()) \
+                .all()
+            session.close()
+        return alert
+
+
+    def set_aggregator_version(self, id, version):
+        with self.session.begin() as session:
+            aggregator = session.query(Aggregator).filter(Aggregator.id == id).first()
+            aggregator.version = version
+            session.commit()
+            session.close()
+        return
+
+
+    def get_alerts_by_severity(self, sever):
+        with self.session.begin() as session:
+            alerts = session\
+                .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity)\
+                .filter(Alert.severity >= sever)\
+                .order_by(Alert.timestamp.desc())\
+                .all()
+            session.close()
+        return alerts
+
+
+    def get_alerts_by_id(self, aid):
+        with self.session.begin() as session:
+            alerts = session\
+                .query(Alert)\
+                .filter(Alert.id == aid)\
+                .all()
+            session.close()
+        return alerts[0]
+
+
+    def get_modules(self):
+        with self.session.begin() as session:
+            alert = session\
+                .query(Module)\
+                .order_by(Module.id)\
+                .all()
             session.close()
         return alert

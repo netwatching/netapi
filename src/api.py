@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 from src.models import oldDevice, User, Settings
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
+from typing import Optional
 import json
 import datetime
 
@@ -94,7 +95,7 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
         access_token = authorize.create_access_token(subject=aggregator_id)
         refresh_token = authorize.create_refresh_token(subject=aggregator_id)
         return {"token": access_token, "refresh_token": refresh_token, "aggregator_id": aggregator_id}
-    return {""}
+    raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 # --- AGGREGATOR --- #
@@ -107,9 +108,11 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
     out = []
     if id > 0:
-        d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbi', aggregator_id=id, timeout=10, module_name=['problems', 'events'])
+        d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbi', aggregator_id=id, timeout=10,
+                      module_name=['problems', 'events'])
         out.append(d.serialize())
-        d = oldDevice(id=2, name=f'Ubi', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10, module_name=['snmp'])
+        d = oldDevice(id=2, name=f'Ubi', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10,
+                      module_name=['snmp'])
         out.append(d.serialize())
     return out
 
@@ -120,19 +123,11 @@ async def aggregator(id: int, request: Request, authorize: AuthJWT = Depends()):
     /api/aggregator/{id}/version - POST - version of the aggregator
     """
     authorize.jwt_required()
-    if id > 0:
-        try:
-            jsondata = await request.json()
-            out = {
-                "data": "success",
-                "data_sent": {json.dumps(jsondata)}
-            }
-        except BaseException as e:
-            print(e)
-            out = {"data": "failed"}
-    else:
-        out = {"data": "failed"}
-    return out
+    if id:
+        jsondata = await request.json()
+        db.set_aggregator_version(id, jsondata['version'])
+        return {"detail": "updated"}
+    raise HTTPException(status_code=400, detail="Bad Parameter")
 
 
 @app.post("/api/aggregator/{id}/modules")
@@ -141,31 +136,16 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
     /aggregator/{id}/modules - POST - aggregator sends all known modules
     """
     authorize.jwt_required()
-    if id > 0:
-        try:
-            jsondata = await request.json()
-            out = {
-                "data": "success",
-                "data_sent": {json.dumps(jsondata)}
-            }
-        except BaseException as e:
-            print(e)
-            out = {"data": "failed"}
-    else:
-        out = {"data": "failed"}
-    return out
+
+    if id:
+        jsondata = await request.json()
+
+        # TODO
+        #db.insert_aggregator_modules()
+    raise HTTPException(status_code=400, detail="Bad Parameter")
 
 
 # --- DEVICES --- #
-
-@app.get("/api/devices/full")
-async def get_all_devices(authorize: AuthJWT = Depends()):
-    """
-    /devices - GET - get all devices and what belongs to it for the frontend
-    """
-    authorize.jwt_required()
-
-    return db.get_full_devices()
 
 
 @app.get("/api/devices")
@@ -225,17 +205,6 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
     return out
 
 
-@app.post("/api/devices")
-async def add_devices(device: oldDevice, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
-    """
-    /devices - POST - add a new device and return device
-    """
-
-    device.id = device.get_id()
-    return {"devices": device.serialize()}
-
-
 @app.get("/api/devices/{id}/data/{senor}")
 async def devices_id_sensor(id: int, sensor: str, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
@@ -280,10 +249,12 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                         db.add_value_numeric(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
             for event_host in jsondata['external_events']:
                 event_values = jsondata['external_events'][event_host][0]
-                event_timestamp = datetime.datetime.fromtimestamp(int(event_values['timestamp'])).strftime("%Y-%m-%d %H:%M:%S")
+                event_timestamp = datetime.datetime.fromtimestamp(int(event_values['timestamp'])).strftime(
+                    "%Y-%m-%d %H:%M:%S")
                 event_severity = event_values['severity']
                 event_problem = event_values['problem']
-                db.add_event(cursor=cursor, timestamp=event_timestamp, severity=event_severity, problem=event_problem, hostname=event_host)
+                db.add_event(cursor=cursor, timestamp=event_timestamp, severity=event_severity, problem=event_problem,
+                             hostname=event_host)
 
             cursor.close()
             db.connection.commit()
@@ -292,6 +263,16 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
         print(e)
         out = {"data": "failed"}
     return out
+
+
+@app.get("/api/devices/{did}/alerts")
+async def get_alerts_by_device(did: int, minSeverity: Optional[int] = 0, authorize: AuthJWT = Depends()):
+    """
+    /categories - GET - get all alerts by device id
+    """
+    authorize.jwt_required()
+
+    return db.get_alerts_by_device_id(did, minSeverity)
 
 
 # --- Features --- #
@@ -337,23 +318,34 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
 # --- Alerts --- #
 
 @app.get("/api/alerts")
-async def get_all_alerts(authorize: AuthJWT = Depends()):
+async def get_all_alerts(minSeverity: Optional[int] = 0, authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all alerts
     """
     authorize.jwt_required()
 
-    return db.get_alerts()
+    return db.get_alerts_by_severity(minSeverity)
 
 
-@app.get("/api/alerts/{did}")
-async def get_all_categories(did: int, authorize: AuthJWT = Depends()):
+@app.get("/api/alerts/{aid}")
+async def get_all_alerts(aid: int, authorize: AuthJWT = Depends()):
     """
-    /categories - GET - get all alerts by device id
+    /categories - GET - get all alerts
     """
     authorize.jwt_required()
 
-    return db.get_alerts_by_id(did)
+    return db.get_alerts_by_id(aid)
+
+
+# --- Modules --- #
+@app.get("/api/modules")
+async def get_all_modules(authorize: AuthJWT = Depends()):
+    """
+    /categories - GET - get all alerts
+    """
+    authorize.jwt_required()
+
+    return db.get_modules()
 
 
 # --- Exception Handling --- #
