@@ -116,14 +116,13 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
 
 @app.post("/api/aggregator/{id}/version")
 async def aggregator(id: int, request: Request, authorize: AuthJWT = Depends()):
-    authorize.jwt_required()
     """
     /api/aggregator/{id}/version - POST - version of the aggregator
     """
+    authorize.jwt_required()
     if id > 0:
         try:
             jsondata = await request.json()
-            print(jsondata)
             out = {
                 "data": "success",
                 "data_sent": {json.dumps(jsondata)}
@@ -145,7 +144,6 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
     if id > 0:
         try:
             jsondata = await request.json()
-            print(jsondata)
             out = {
                 "data": "success",
                 "data_sent": {json.dumps(jsondata)}
