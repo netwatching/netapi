@@ -163,3 +163,15 @@ class Module(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     config_fields = Column(JSON)
     device_id = Column(Integer, ForeignKey('Device.id'))
+
+class Type(Base):
+    __tablename__ = "Type"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    type = Column(String, unique=True)
+    config_signature = Column(JSON)
+
+class Aggregator_To_Type(Base):
+    __tablename__ = "Aggregator_To_Type"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    type_id = Column(Integer, ForeignKey('Type.id'))
+    aggregator_id = Column(Integer, ForeignKey('Aggregator.id'))

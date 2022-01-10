@@ -140,8 +140,8 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
     if id:
         jsondata = await request.json()
 
-        # TODO
-        #db.insert_aggregator_modules()
+        db.insert_aggregator_modules(jsondata, id)
+        return
     raise HTTPException(status_code=400, detail="Bad Parameter")
 
 

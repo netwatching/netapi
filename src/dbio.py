@@ -1,8 +1,11 @@
+import json
+
 import sqlalchemy as sql
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import asc, desc
-from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module
+from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, Aggregator_To_Type
+from sqlalchemy.dialects.mysql import insert
 
 
 import mysql.connector
@@ -156,3 +159,47 @@ class DBIO:
                 .all()
             session.close()
         return alert
+
+    def insert_aggregator_modules(self, data, aid):
+        # with self.session.begin() as session:
+        #     a = session.query(Aggregator).filter(Aggregator.id == aid).first()
+        #     session.close()
+        #
+        # for d in data["modules"]:
+        #     with self.session.begin() as session:
+        #         m = session.query(Type).filter(Type.type == d["id"]).first()
+        #         if m is None:
+        #             m = Type(type=d["id"], config_signature=d["config"])
+        #             session.add(m)
+        #         else:
+        #             m.config_signature = d["config"]
+        #
+        #         a_to_t = session\
+        #             .query(Aggregator_To_Type)\
+        #             .filter(Aggregator_To_Type.aggregator_id == a.id)\
+        #             .filter(Aggregator_To_Type.type_id == m.id)\
+        #             .first()
+        #
+        #         if a_to_t is None:
+        #
+        #
+        #         session.commit()
+        #         session.close()
+
+        for d in data["modules"]:
+            with self.session.begin() as session:
+                sth = insert(Type).values(type=d["id"], config_signature=d["config"])
+                on_duplicate_sth = sth.on_duplicate_key_update(config_signature=d["config"])
+                session.execute(on_duplicate_sth)
+
+                aggregator = session.query(Aggregator).filter(Aggregator.id == aid).first()
+
+                type = session.query(Type).filter(Type.type == d["id"]).first()
+                sth = insert(Aggregator_To_Type).values(type_id=type.id, aggregator_id=aggregator.id)
+                on_duplicate_sth = sth.on_duplicate_key_update(type_id=type.id, aggregator_id=aggregator.id)
+                session.execute(on_duplicate_sth)
+            session.commit()
+            session.close()
+
+
+        return
