@@ -73,7 +73,11 @@ class DBIO:
 
     def get_device_by_id(self, id: int):
         with self.session.begin() as session:
-            devices = session.query(Device).filter(Device.id == id).all()
+            devices = session\
+                .query(Category.category, Device)\
+                .filter(Device.id == id)\
+                .join(Category, Device.category_id == Category.id)\
+                .all()
             session.close()
         return devices
 
@@ -144,7 +148,8 @@ class DBIO:
     def get_alerts_by_id(self, aid):
         with self.session.begin() as session:
             alerts = session\
-                .query(Alert)\
+                .query(Device.device, Alert) \
+                .join(Device, Device.id == Alert.device_id) \
                 .filter(Alert.id == aid)\
                 .all()
             session.close()
@@ -161,31 +166,6 @@ class DBIO:
         return alert
 
     def insert_aggregator_modules(self, data, aid):
-        # with self.session.begin() as session:
-        #     a = session.query(Aggregator).filter(Aggregator.id == aid).first()
-        #     session.close()
-        #
-        # for d in data["modules"]:
-        #     with self.session.begin() as session:
-        #         m = session.query(Type).filter(Type.type == d["id"]).first()
-        #         if m is None:
-        #             m = Type(type=d["id"], config_signature=d["config"])
-        #             session.add(m)
-        #         else:
-        #             m.config_signature = d["config"]
-        #
-        #         a_to_t = session\
-        #             .query(Aggregator_To_Type)\
-        #             .filter(Aggregator_To_Type.aggregator_id == a.id)\
-        #             .filter(Aggregator_To_Type.type_id == m.id)\
-        #             .first()
-        #
-        #         if a_to_t is None:
-        #
-        #
-        #         session.commit()
-        #         session.close()
-
         for d in data["modules"]:
             with self.session.begin() as session:
                 sth = insert(Type).values(type=d["id"], config_signature=d["config"])
@@ -200,6 +180,5 @@ class DBIO:
                 session.execute(on_duplicate_sth)
             session.commit()
             session.close()
-
 
         return

@@ -141,7 +141,10 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
         jsondata = await request.json()
 
         db.insert_aggregator_modules(jsondata, id)
-        return
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Inserted"}
+        )
     raise HTTPException(status_code=400, detail="Bad Parameter")
 
 
@@ -318,7 +321,7 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
 # --- Alerts --- #
 
 @app.get("/api/alerts")
-async def get_all_alerts(minSeverity: Optional[int] = 0, authorize: AuthJWT = Depends()):
+async def get_all_alerts(minSeverity: Optional[int] = 0, severity: Optional[str] = "", authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all alerts
     """
