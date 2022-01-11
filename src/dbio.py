@@ -137,7 +137,8 @@ class DBIO:
     def get_alerts_by_severity(self, sever):
         with self.session.begin() as session:
             alerts = session\
-                .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity)\
+                .query(Device.device, Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity)\
+                .join(Device, Device.id == Alert.device_id)\
                 .filter(Alert.severity >= sever)\
                 .order_by(Alert.timestamp.desc())\
                 .all()
