@@ -1,7 +1,7 @@
 # build container
 FROM python:3-alpine as netapi-config
 WORKDIR /usr/src/app
-RUN apk add --no-cache --update gcc libc-dev linux-headers alpine-sdk && rm -rf /var/cache/apk/*
+RUN apk add --no-cache --update gcc libc-dev linux-headers alpine-sdk python3-dev && rm -rf /var/cache/apk/*
 RUN adduser -s /bin/bash -S netapi
 USER netapi
 COPY requirements.txt ./
