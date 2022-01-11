@@ -1,5 +1,5 @@
 # build container
-FROM python:3-alpine as order-config
+FROM python:3-alpine as netapi-config
 WORKDIR /usr/src/app
 RUN apk add --no-cache --update gcc libc-dev linux-headers alpine-sdk && rm -rf /var/cache/apk/*
 RUN adduser -s /bin/bash -S netapi
@@ -7,7 +7,7 @@ USER netapi
 COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
 # main container
-FROM python:3-alpine as order
+FROM python:3-alpine as netapi
 ENV PYTHONUNBUFFERED definitely
 ENV TZ Europe/Vienna
 WORKDIR /usr/src/app
