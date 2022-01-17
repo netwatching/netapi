@@ -321,13 +321,32 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
 # --- Alerts --- #
 
 @app.get("/api/alerts")
-async def get_all_alerts(minSeverity: Optional[int] = 0, severity: Optional[str] = "", authorize: AuthJWT = Depends()):
+async def get_all_alerts(
+        minSeverity: Optional[int] = 0,
+        severity: Optional[str] = None,
+        page: Optional[int] = None,
+        amount: Optional[int] = None,
+        authorize: AuthJWT = Depends()
+    ):
     """
     /categories - GET - get all alerts
     """
     authorize.jwt_required()
 
-    return db.get_alerts_by_severity(minSeverity)
+    out = {}
+
+    out["page"] = page
+    out["amount"] = amount
+
+    if severity:
+        sevs = severity.split('_')
+        data = db.get_alerts_by_severity_type(sevs, page, amount)
+    else:
+        data = db.get_alerts_by_severity(minSeverity, page, amount)
+
+    out["total"] = data[1]
+    out["alerts"] = data[0]
+    return out
 
 
 @app.get("/api/alerts/{aid}")

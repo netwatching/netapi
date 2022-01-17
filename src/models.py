@@ -83,6 +83,7 @@ class Device(Base):
     features = relationship('Feature', back_populates="device", lazy='joined')
     category_id = Column(Integer, ForeignKey('Category.id'))
     category = relationship('Category', back_populates="devices")
+    ip = Column(String)
 
     def __init__(self, device, config_signature, config_fields, category):
         self.device = device
@@ -169,6 +170,7 @@ class Type(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     type = Column(String, unique=True)
     config_signature = Column(JSON)
+    config_fields = Column(JSON)
 
 class Aggregator_To_Type(Base):
     __tablename__ = "Aggregator_To_Type"
