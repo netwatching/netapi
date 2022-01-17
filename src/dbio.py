@@ -138,21 +138,23 @@ class DBIO:
         with self.session.begin() as session:
             if page and amount:
                 alerts = session \
-                    .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
+                    .query(Device.device, Alert) \
                     .filter(Alert.severity >= sever) \
+                    .join(Device, Device.id == Alert.device_id) \
                     .order_by(Alert.timestamp.desc()) \
                     .offset(((page - 1) * amount)) \
                     .limit((amount)) \
                     .all()
             else:
                 alerts = session\
-                    .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity)\
-                    .filter(Alert.severity >= sever)\
+                    .query(Device.device, Alert)\
+                    .filter(Alert.severity >= sever) \
+                    .join(Device, Device.id == Alert.device_id) \
                     .order_by(Alert.timestamp.desc())\
                     .all()
 
             count = session \
-                .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
+                .query(Alert) \
                 .filter(Alert.severity >= sever) \
                 .count()
             session.close()
