@@ -1,3 +1,4 @@
+import sqlalchemy.exc
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
@@ -190,9 +191,11 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
 
         for f in features:
             for val_s in f.value_strings:
-                dic[val_s.key] = val_s.value
+                if val_s is not None:
+                    dic[val_s.key] = val_s.value
             for val_n in f.value_numerics:
-                dic[val_n.key] = val_n.value
+                if val_n is not None:
+                    dic[val_n.key] = val_n.value
 
             if "interfaces;" in f.feature:
                 ifs.append(dic)
@@ -278,6 +281,24 @@ async def get_alerts_by_device(did: int, minSeverity: Optional[int] = 0, authori
     return db.get_alerts_by_device_id(did, minSeverity)
 
 
+@app.post("/api/devices/add")
+async def add_device(request: Request, authorize: AuthJWT = Depends()):
+    """
+    /categories - GET - get all alerts by device id
+    """
+    authorize.jwt_required()
+
+    data = await request.json()
+
+    if data.get('device') is not None and data.get('category') is not None:
+        try:
+            db.add_device(data['device'], data['category'], data['ip'])
+        except sqlalchemy.exc.IntegrityError:
+            raise HTTPException(status_code=400, detail="already exists")
+        return {"status": "success"}
+
+    raise HTTPException(status_code=400, detail="Bad Parameter")
+
 # --- Features --- #
 
 @app.get("/api/features")
@@ -309,6 +330,16 @@ async def get_all_features(authorize: AuthJWT = Depends()):
 # --- Category --- #
 
 @app.get("/api/categories")
+async def get_all_categories(authorize: AuthJWT = Depends()):
+    """
+    /categories - GET - get all available categories
+    """
+    authorize.jwt_required()
+
+    return db.get_categories()
+
+
+@app.post("/api/categories/add")
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories

@@ -66,14 +66,10 @@ class Category(Base):
     __tablename__ = "Category"
     id = Column(Integer, primary_key=True, autoincrement=True)
     category = Column(String)
-    config_signature = Column(JSON)
-    config_fields = Column(JSON)
     devices = relationship('Device', back_populates="category", lazy='joined')
 
-    def __init__(self, category, config_signature, config_fields):
+    def __init__(self, category):
         self.category = category
-        self.config_signature = config_signature
-        self.config_fields = config_fields
 
 
 class Device(Base):
@@ -85,11 +81,10 @@ class Device(Base):
     category = relationship('Category', back_populates="devices")
     ip = Column(String)
 
-    def __init__(self, device, config_signature, config_fields, category):
+    def __init__(self, device, category, ip):
         self.device = device
-        self.config_signature = config_signature
-        self.config_fields = config_fields
         self.category = category
+        self.ip = ip
 
 
 class Feature(Base):
