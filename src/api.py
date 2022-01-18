@@ -272,13 +272,28 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
 
 
 @app.get("/api/devices/{did}/alerts")
-async def get_alerts_by_device(did: int, minSeverity: Optional[int] = 0, authorize: AuthJWT = Depends()):
+async def get_alerts_by_device(
+        did: int,
+        minSeverity: Optional[int] = 0,
+        page: Optional[int] = None,
+        amount: Optional[int] = None,
+        authorize: AuthJWT = Depends()
+    ):
     """
     /categories - GET - get all alerts by device id
     """
     authorize.jwt_required()
 
-    return db.get_alerts_by_device_id(did, minSeverity)
+    out = {}
+
+    out["page"] = page
+    out["amount"] = amount
+
+    data = db.get_alerts_by_device_id(did, minSeverity, page, amount)
+
+    out["total"] = data[1]
+    out["alerts"] = data[0]
+    return out
 
 
 @app.post("/api/devices/add")
