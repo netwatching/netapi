@@ -112,25 +112,25 @@ async def aggregator(id: int, authorize: AuthJWT = Depends()):
         d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbi', aggregator_id=id, timeout=10,
                       module_name=['problems', 'events'])
         out.append(d.serialize())
-        d = oldDevice(id=2, name=f'Ubi', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10,
+        d = oldDevice(id=2, name=f'UbiSW1', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10,
                       module_name=['snmp'])
         out.append(d.serialize())
-        d = oldDevice(id=3, name=f'Ubi', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10,
+        d = oldDevice(id=3, name=f'Cisco1', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10,
               module_name=['snmp'])
         out.append(d.serialize())
-        d = oldDevice(id=4, name=f'Ubi', ip=f'172.31.37.89', type='Ubiquiti', aggregator_id=id, timeout=10,
+        d = oldDevice(id=4, name=f'UbiSW2', ip=f'172.31.37.89', type='Ubiquiti', aggregator_id=id, timeout=10,
               module_name=['snmp'])
         out.append(d.serialize())
-        d = oldDevice(id=5, name=f'Ubi', ip=f'172.31.37.70', type='Ubiquiti', aggregator_id=id, timeout=10,
+        d = oldDevice(id=5, name=f'UbiSW3', ip=f'172.31.37.70', type='Ubiquiti', aggregator_id=id, timeout=10,
               module_name=['snmp'])
         out.append(d.serialize())
-        d = oldDevice(id=6, name=f'Ubi', ip=f'172.31.37.78', type='Ubiquiti', aggregator_id=id, timeout=10,
+        d = oldDevice(id=6, name=f'UbiAP1', ip=f'172.31.37.78', type='Ubiquiti', aggregator_id=id, timeout=10,
               module_name=['snmp'])
         out.append(d.serialize())
-        d = oldDevice(id=7, name=f'Ubi', ip=f'172.31.37.46', type='Ubiquiti', aggregator_id=id, timeout=10,
+        d = oldDevice(id=7, name=f'UbiAP2', ip=f'172.31.37.46', type='Ubiquiti', aggregator_id=id, timeout=10,
               module_name=['snmp'])
         out.append(d.serialize())
-        d = oldDevice(id=8, name=f'Ubi', ip=f'172.31.37.44', type='Ubiquiti', aggregator_id=id, timeout=10,
+        d = oldDevice(id=8, name=f'UbiAP3', ip=f'172.31.37.44', type='Ubiquiti', aggregator_id=id, timeout=10,
               module_name=['snmp'])
         out.append(d.serialize())
     return out
