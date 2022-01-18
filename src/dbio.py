@@ -168,8 +168,8 @@ class DBIO:
     def get_modules(self):
         with self.session.begin() as session:
             alert = session \
-                .query(Module) \
-                .order_by(Module.id) \
+                .query(Type) \
+                .order_by(Type.id) \
                 .all()
             session.close()
         return alert
@@ -177,8 +177,8 @@ class DBIO:
     def insert_aggregator_modules(self, data, aid):
         for d in data["modules"]:
             with self.session.begin() as session:
-                sth = insert(Type).values(type=d["id"], config_signature=d["config"])
-                on_duplicate_sth = sth.on_duplicate_key_update(config_signature=d["config"])
+                sth = insert(Type).values(type=d["id"], config_signature=d["config_signature"], config_fields=d["config_fields"])
+                on_duplicate_sth = sth.on_duplicate_key_update(config_signature=d["config_signature"], config_fields=d["config_fields"])
                 session.execute(on_duplicate_sth)
 
                 aggregator = session.query(Aggregator).filter(Aggregator.id == aid).first()
