@@ -104,7 +104,7 @@ class DBIO:
     def get_alerts(self):
         with self.session.begin() as session:
             alert = session \
-                .query(Alert) \
+                .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                 .order_by(Alert.timestamp.desc()) \
                 .all()
             session.close()
@@ -114,7 +114,7 @@ class DBIO:
         with self.session.begin() as session:
             if page and amount:
                 alert = session \
-                    .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
+                    .query(Alert) \
                     .filter(Alert.device_id == did) \
                     .filter(Alert.severity >= sever) \
                     .order_by(Alert.timestamp.desc()) \
