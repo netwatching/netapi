@@ -137,11 +137,6 @@ class Alert(Base):
     severity = Column(Integer)
     device_id = Column(Integer, ForeignKey('Device.id'))
 
-    def __init__(self, category, config_signature, config_fields):
-        self.category = category
-        self.config_signature = config_signature
-        self.config_fields = config_fields
-
 
 class Aggregator(Base):
     __tablename__ = "Aggregator"

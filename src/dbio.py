@@ -114,7 +114,7 @@ class DBIO:
         with self.session.begin() as session:
             if page and amount:
                 alert = session \
-                    .query(Alert) \
+                    .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                     .filter(Alert.device_id == did) \
                     .filter(Alert.severity >= sever) \
                     .order_by(Alert.timestamp.desc()) \
@@ -150,7 +150,7 @@ class DBIO:
         with self.session.begin() as session:
             if page and amount:
                 alerts = session \
-                    .query(Device.device, Alert) \
+                    .query(Device.device, Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                     .filter(Alert.severity >= sever) \
                     .join(Device, Device.id == Alert.device_id) \
                     .order_by(Alert.timestamp.desc()) \
@@ -159,7 +159,7 @@ class DBIO:
                     .all()
             else:
                 alerts = session \
-                    .query(Device.device, Alert) \
+                    .query(Device.device, Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                     .filter(Alert.severity >= sever) \
                     .join(Device, Device.id == Alert.device_id) \
                     .order_by(Alert.timestamp.desc()) \
@@ -175,7 +175,7 @@ class DBIO:
     def get_alerts_by_id(self, aid):
         with self.session.begin() as session:
             alerts = session \
-                .query(Device.device, Alert) \
+                .query(Device.device, Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                 .join(Device, Device.id == Alert.device_id) \
                 .filter(Alert.id == aid) \
                 .all()
@@ -215,7 +215,7 @@ class DBIO:
         with self.session.begin() as session:
             if page and amount:
                 alerts = session \
-                    .query(Device.device, Alert) \
+                    .query(Device.device, Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                     .join(Device, Device.id == Alert.device_id) \
                     .filter(Alert.severity.in_(sevs)) \
                     .order_by(Alert.timestamp.desc()) \
@@ -224,7 +224,7 @@ class DBIO:
                     .all()
             else:
                 alerts = session \
-                    .query(Device.device, Alert) \
+                    .query(Device.device, Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                     .join(Device, Device.id == Alert.device_id) \
                     .filter(Alert.severity.in_(sevs)) \
                     .order_by(Alert.timestamp.desc()) \

@@ -326,6 +326,7 @@ async def get_alerts_by_device(
     out["amount"] = amount
 
     data = db.get_alerts_by_device_id(did, minSeverity, page, amount)
+    return data
 
     out["total"] = data[1]
     out["alerts"] = data[0]
