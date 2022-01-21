@@ -104,7 +104,7 @@ class DBIO:
     def get_alerts(self):
         with self.session.begin() as session:
             alert = session \
-                .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
+                .query(Alert) \
                 .order_by(Alert.timestamp.desc()) \
                 .all()
             session.close()
