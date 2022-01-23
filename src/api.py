@@ -1,16 +1,17 @@
 import sqlalchemy.exc
+import uvicorn as uvicorn
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
-from src.models import oldDevice, User, Settings
+from models import oldDevice, User, Settings
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
 import datetime
 
-from src.dbio import DBIO
+from dbio import DBIO
 
 # only for test
 from random import randint
@@ -23,7 +24,7 @@ origins = [
     "http://localhost:4200",
     "http://palguin.htl-vil.local",
     "0.0.0.0",
-    "localhost"
+    "localhost",
 ]
 
 app.add_middleware(
@@ -33,6 +34,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 def schema():
    openapi_schema = get_openapi(
@@ -453,6 +455,34 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     return db.get_modules()
 
 
+# --- Redis --- #
+
+@app.post("/api/redis")
+async def redis(request: Request):
+#async def redis(request: Request, authorize: AuthJWT = Depends()):
+    """
+    /redis - POST - aggregator sends all live-data variables
+    """
+    #authorize.jwt_required()
+
+    jsondata = await request.json()
+
+    db.redis_insert_live_data(jsondata)
+    return JSONResponse(
+        status_code=200,
+        content={"detail": "Inserted"}
+    )
+
+    # {
+    #   "device": "testing by Steiger API",
+    #   "data": {
+    #     "in_unicast_packets": {
+    #     "2022-01-23 21:00:00": "2000"
+    #     }
+    #   }
+    # }
+
+
 # --- Exception Handling --- #
 
 @app.exception_handler(AuthJWTException)
@@ -461,3 +491,9 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
         status_code=exc.status_code,
         content={"detail": exc.message}
     )
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=4200, log_level="info")
+
+
+

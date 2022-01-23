@@ -1,11 +1,12 @@
 import json
 
+import redis
 import sqlalchemy as sql
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import asc, desc
-from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, \
+from models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, \
     Aggregator_To_Type
 from sqlalchemy.dialects.mysql import insert
 
@@ -236,3 +237,40 @@ class DBIO:
                 .count()
             session.close()
             return [alerts, count]
+
+    def redis_insert_live_data(self, data):
+        hostname = data["device"]
+
+        for interface_index in data["data"]:
+            if interface_index == "in_bytes":
+                self.redis_insert(hostname, data["data"][interface_index], 0)
+            elif interface_index == "in_unicast_packets":
+                self.redis_insert(hostname, data["data"][interface_index], 1)
+            elif interface_index == "in_non_unicast_packets":
+                self.redis_insert(hostname, data["data"][interface_index], 2)
+            elif interface_index == "in_discards":
+                self.redis_insert(hostname, data["data"][interface_index], 3)
+            elif interface_index == "in_errors":
+                self.redis_insert(hostname, data["data"][interface_index], 4)
+            elif interface_index == "in_unknown_protocolls":
+                self.redis_insert(hostname, data["data"][interface_index], 5)
+            elif interface_index == "out_bytes":
+                self.redis_insert(hostname, data["data"][interface_index], 6)
+            elif interface_index == "out_unicast_packets":
+                self.redis_insert(hostname, data["data"][interface_index], 7)
+            elif interface_index == "out_non_unicast_packets":
+                self.redis_insert(hostname, data["data"][interface_index], 8)
+            elif interface_index == "out_discards":
+                self.redis_insert(hostname, data["data"][interface_index], 9)
+            elif interface_index == "out_errors":
+                self.redis_insert(hostname, data["data"][interface_index], 10)
+
+    def redis_insert(self, hostname: str, values: list, database_index: int):
+        pool = redis.ConnectionPool(host="192.168.50.129", port="6379", password="testPassword1234",
+                                    username="default",
+                                    db=database_index)
+        r = redis.Redis(connection_pool=pool)
+        r.zadd(hostname, values)
+        pool.connection_class()
+
+

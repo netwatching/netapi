@@ -18,7 +18,8 @@ class User(BaseModel):
 
 
 class Settings(BaseModel):
-    authjwt_secret_key: str = config("secret")
+    #authjwt_secret_key: str = config("secret")
+    authjwt_secret_key: str = "secret"
 
 
 class oldDevice(BaseModel):  # old device model, should be deleted
