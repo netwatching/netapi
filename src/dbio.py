@@ -1,4 +1,6 @@
+import asyncio
 import json
+from datetime import datetime
 
 import redis
 import sqlalchemy as sql
@@ -6,7 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import asc, desc
-from models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, \
+from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, \
     Aggregator_To_Type
 from sqlalchemy.dialects.mysql import insert
 
@@ -23,6 +25,10 @@ class DBIO:
             self.connection = mysql.connector.connect(host='palguin.htl-vil.local', database='netdb', user='netdb',
                                                       password='NPlyaVeGq5rse715JvD6',
                                                       auth_plugin='mysql_native_password')
+            self.redis_indices = ["in_bytes", "in_unicast_packets", "in_non_unicast_packets",
+                                  "in_discards", "in_errors", "in_unknown_protocols",
+                                  "out_bytes", "out_unicast_packets", "out_non_unicast_packets",
+                                  "out_discards", "out_errors"]
 
     def add_value_numeric(self, cursor, device_id: int, feature_name: str, key: str, value):
         args = (device_id, feature_name, key, value)
@@ -240,37 +246,68 @@ class DBIO:
 
     def redis_insert_live_data(self, data):
         hostname = data["device"]
+        database_index = -1
 
         for interface_index in data["data"]:
             if interface_index == "in_bytes":
-                self.redis_insert(hostname, data["data"][interface_index], 0)
+                database_index = 0
             elif interface_index == "in_unicast_packets":
-                self.redis_insert(hostname, data["data"][interface_index], 1)
+                database_index = 1
             elif interface_index == "in_non_unicast_packets":
-                self.redis_insert(hostname, data["data"][interface_index], 2)
+                database_index = 2
             elif interface_index == "in_discards":
-                self.redis_insert(hostname, data["data"][interface_index], 3)
+                database_index = 3
             elif interface_index == "in_errors":
-                self.redis_insert(hostname, data["data"][interface_index], 4)
+                database_index = 4
             elif interface_index == "in_unknown_protocolls":
-                self.redis_insert(hostname, data["data"][interface_index], 5)
+                database_index = 5
             elif interface_index == "out_bytes":
-                self.redis_insert(hostname, data["data"][interface_index], 6)
+                database_index = 6
             elif interface_index == "out_unicast_packets":
-                self.redis_insert(hostname, data["data"][interface_index], 7)
+                database_index = 7
             elif interface_index == "out_non_unicast_packets":
-                self.redis_insert(hostname, data["data"][interface_index], 8)
+                database_index = 8
             elif interface_index == "out_discards":
-                self.redis_insert(hostname, data["data"][interface_index], 9)
+                database_index = 9
             elif interface_index == "out_errors":
-                self.redis_insert(hostname, data["data"][interface_index], 10)
+                database_index = 10
+
+            if database_index != -1:
+                self.redis_insert(hostname, data["data"][interface_index], database_index)
 
     def redis_insert(self, hostname: str, values: list, database_index: int):
-        pool = redis.ConnectionPool(host="192.168.50.129", port="6379", password="testPassword1234",
+        pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
+                                    password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
                                     username="default",
                                     db=database_index)
         r = redis.Redis(connection_pool=pool)
         r.zadd(hostname, values)
         pool.connection_class()
 
+    async def thread_insertIntoDatabase(self):
+        await asyncio.sleep(300)
 
+        for i in range(0, len(self.redis_indices)):
+            pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
+                                        password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
+                                        username="default",
+                                        db=i)
+            r = redis.Redis(connection_pool=pool)
+
+            for key in r.scan_iter():
+                scores = r.zrange(key, 0, -1, withscores=True)
+
+                avg_score = 0
+                for score in scores:
+                    avg_score += score[1]
+                avg_score /= len(scores)
+
+                with self.session.begin() as session:
+                    device_id = session.query(func.netdb.insDevByCat(key, 3)).all()
+
+                    device_id = device_id[0][0]
+                    feature = self.redis_indices[i]
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                    query = f"Call insValnByFeaNameAndDev({device_id}, \"{feature}\", \"{timestamp}\", {avg_score})"
+                    session.execute(query)

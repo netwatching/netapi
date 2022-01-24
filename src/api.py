@@ -5,13 +5,13 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
-from models import oldDevice, User, Settings
+from src.models import oldDevice, User, Settings
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
 import datetime
 
-from dbio import DBIO
+from src.dbio import DBIO
 
 # only for test
 from random import randint
@@ -492,8 +492,6 @@ def authjwt_exception_handler(request: Request, exc: AuthJWTException):
         content={"detail": exc.message}
     )
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=4200, log_level="info")
 
 
 
