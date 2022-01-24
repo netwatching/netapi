@@ -311,6 +311,7 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
         jsondata = await request.json()
         try:
             devices = jsondata['devices']
+            events = jsondata['external_events']
         except KeyError:
             raise HTTPException(status_code=400, detail="Bad Parameter")
 
@@ -318,7 +319,6 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
 
         for item in devices:
             id = item['id']
-            name = item['name']
             for sd in item['static_data']:
                 identifier = f";{sd['identifier']}" if sd['identifier'] is not None else ''
                 feature = f"{sd['key']}{identifier}"
@@ -329,20 +329,27 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                         db.add_value_string(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
                     else:
                         db.add_value_numeric(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
-            for event_host in jsondata['external_events']:
-                event_values = jsondata['external_events'][event_host][0]
-                event_timestamp = datetime.datetime.fromtimestamp(int(event_values['timestamp'])).strftime(
-                    "%Y-%m-%d %H:%M:%S")
-                event_severity = event_values['severity']
-                event_problem = event_values['problem']
-                db.add_event(cursor=cursor, timestamp=event_timestamp, severity=event_severity, problem=event_problem,
+        for event_host in events:
+            event_values = events[event_host]
+            for event in event_values:
+                event_timestamp = datetime \
+                    .datetime \
+                    .fromtimestamp(int(event['timestamp'])) \
+                    .strftime("%Y-%m-%d %H:%M:%S")
+                event_severity = event['severity']
+                event_problem = event['data']
+                db.add_event(cursor=cursor,
+                             timestamp=event_timestamp,
+                             severity=event_severity,
+                             problem=event_problem,
                              hostname=event_host)
-
-            cursor.close()
-            db.connection.commit()
+        cursor.close()
+        db.connection.commit()
+        db.connection.close()
         out = {"data": "success"}
     except BaseException as e:
         print(e)
+        cursor.close()
         out = {"data": "failed"}
     return out
 
