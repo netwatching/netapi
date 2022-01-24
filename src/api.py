@@ -315,7 +315,6 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
         except KeyError:
             raise HTTPException(status_code=400, detail="Bad Parameter")
 
-        cursor = db.connection.cursor()
 
         for item in devices:
             id = item['id']
@@ -324,14 +323,17 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                 feature = f"{sd['key']}{identifier}"
                 values = sd['value']
                 for key in values:
+                    cursor = db.connection.cursor()
                     value = values[key]
                     if isinstance(value, str):
                         db.add_value_string(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
                     else:
                         db.add_value_numeric(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
+                    cursor.close()
         for event_host in events:
             event_values = events[event_host]
             for event in event_values:
+                cursor = db.connection.cursor()
                 event_timestamp = datetime \
                     .datetime \
                     .fromtimestamp(int(event['timestamp'])) \
@@ -343,9 +345,8 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                              severity=event_severity,
                              problem=event_problem,
                              hostname=event_host)
-        cursor.close()
+                cursor.close()
         db.connection.commit()
-        db.connection.close()
         out = {"data": "success"}
     except BaseException as e:
         print(e)
