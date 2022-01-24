@@ -188,13 +188,30 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 
 
 @app.get("/api/devices")
-async def get_all_devices(authorize: AuthJWT = Depends()):
+async def get_all_devices(
+        category: Optional[str] = None,
+        page: Optional[int] = None,
+        amount: Optional[int] = None,
+        authorize: AuthJWT = Depends()):
     """
     /devices - GET - get all devices in a base version for the frontend
     """
     authorize.jwt_required()
 
-    return db.get_devices()
+    out = {}
+
+    out["page"] = page
+    out["amount"] = amount
+
+    if category:
+        cats = category.split('_')
+        data = db.get_devices_by_categories(cats, page, amount)
+    else:
+        data = db.get_devices(page, amount)
+
+    out["total"] = data[1]
+    out["devices"] = data[0]
+    return out
 
 
 @app.get("/api/devices/{id}")

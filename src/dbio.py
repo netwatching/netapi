@@ -63,20 +63,58 @@ class DBIO:
             session.close()
         return devices
 
-    def get_devices(self):
+    def get_devices(self, page, amount):
         with self.session.begin() as session:
-            devices = session \
-                .query(Device.id, Device.category_id, Device.device, Category.category) \
-                .join(Category, Device.category_id == Category.id) \
-                .order_by(Device.id.asc()) \
-                .all()
+            if page and amount:
+                devices = session \
+                    .query(Device.id, Device.category_id, Device.device, Category.category) \
+                    .join(Category, Device.category_id == Category.id) \
+                    .order_by(Device.id.asc()) \
+                    .offset(((page - 1) * amount)) \
+                    .limit(amount) \
+                    .all()
+            else:
+                devices = session \
+                    .query(Device.id, Device.category_id, Device.device, Category.category) \
+                    .join(Category, Device.category_id == Category.id) \
+                    .order_by(Device.id.asc()) \
+                    .all()
+            count = session \
+                .query(Device.id) \
+                .count()
             session.close()
-        return devices
+        return [devices, count]
+
+    def get_devices_by_categories(self, categories, page, amount):
+        cats = list(map(int, categories))
+        with self.session.begin() as session:
+            if page and amount:
+                devices = session \
+                    .query(Device.id, Device.category_id, Device.device, Category.category) \
+                    .join(Category, Device.category_id == Category.id) \
+                    .filter(Device.category_id.in_(cats)) \
+                    .order_by(Device.id.asc()) \
+                    .offset(((page - 1) * amount)) \
+                    .limit(amount) \
+                    .all()
+            else:
+                devices = session \
+                    .query(Device.id, Device.category_id, Device.device, Category.category) \
+                    .join(Category, Device.category_id == Category.id) \
+                    .filter(Device.category_id.in_(cats)) \
+                    .order_by(Device.id.asc()) \
+                    .all()
+            count = session \
+                .query(Device.id) \
+                .filter(Device.category_id.in_(cats)) \
+                .count()
+            session.close()
+        return [devices, count]
 
     def get_device_by_id(self, id: int):
         with self.session.begin() as session:
             devices = session \
-                .query(Category.category, Device) \
+                .query(Category.category, Device.id, Device.category_id, Device.device, Category.category) \
                 .filter(Device.id == id) \
                 .join(Category, Device.category_id == Category.id) \
                 .all()
