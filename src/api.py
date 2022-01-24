@@ -79,7 +79,7 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
         pw = json_body['pw']
         uid = json_body['id']
         name = json_body['name']
-    except ValueError:
+    except KeyError:
         raise HTTPException(status_code=400, detail="Bad Parameter")
 
     if pw != config("pw"):
@@ -118,7 +118,7 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
     json_body = await request.json()
     try:
         token = json_body['token']
-    except ValueError:
+    except KeyError:
         raise HTTPException(status_code=400, detail="Bad Parameter")
 
     if token == config("token"):
@@ -176,7 +176,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
         jsondata = await request.json()
         try:
             ver = jsondata['version']
-        except ValueError:
+        except KeyError:
             raise HTTPException(status_code=400, detail="Bad Parameter")
 
         db.set_aggregator_version(id, ver)
@@ -311,7 +311,7 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
         jsondata = await request.json()
         try:
             devices = jsondata['devices']
-        except ValueError:
+        except KeyError:
             raise HTTPException(status_code=400, detail="Bad Parameter")
 
         cursor = db.connection.cursor()

@@ -232,7 +232,7 @@ class DBIO:
     def insert_aggregator_modules(self, data, aid):
         try:
             modules = data["modules"]
-        except ValueError:
+        except KeyError:
             raise HTTPException(status_code=400, detail="Bad Parameter")
 
         for d in modules:
