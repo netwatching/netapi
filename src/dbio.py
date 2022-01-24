@@ -246,31 +246,9 @@ class DBIO:
 
     def redis_insert_live_data(self, data):
         hostname = data["device"]
-        database_index = -1
 
         for interface_index in data["data"]:
-            if interface_index == "in_bytes":
-                database_index = 0
-            elif interface_index == "in_unicast_packets":
-                database_index = 1
-            elif interface_index == "in_non_unicast_packets":
-                database_index = 2
-            elif interface_index == "in_discards":
-                database_index = 3
-            elif interface_index == "in_errors":
-                database_index = 4
-            elif interface_index == "in_unknown_protocolls":
-                database_index = 5
-            elif interface_index == "out_bytes":
-                database_index = 6
-            elif interface_index == "out_unicast_packets":
-                database_index = 7
-            elif interface_index == "out_non_unicast_packets":
-                database_index = 8
-            elif interface_index == "out_discards":
-                database_index = 9
-            elif interface_index == "out_errors":
-                database_index = 10
+            database_index = self.redis_indices.index(interface_index)
 
             if database_index != -1:
                 self.redis_insert(hostname, data["data"][interface_index], database_index)
