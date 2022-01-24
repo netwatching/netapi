@@ -34,23 +34,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def schema():
-   openapi_schema = get_openapi(
-       title="NetAPI",
-       version="1.0",
-       routes=app.routes,
-   )
-   openapi_schema["info"] = {
-       "title" : "NetAPI",
-       "version" : "1.0",
-       "description" : "API for the NetWatch project",
-   }
-   app.openapi_schema = openapi_schema
 
-   return app.openapi_schema
+def schema():
+    openapi_schema = get_openapi(
+        title="NetAPI",
+        version="1.0",
+        routes=app.routes,
+    )
+    openapi_schema["info"] = {
+        "title": "NetAPI",
+        "version": "1.0",
+        "description": "API for the NetWatch project",
+    }
+    app.openapi_schema = openapi_schema
+
+    return app.openapi_schema
 
 
 app.openapi = schema
+
 
 @AuthJWT.load_config
 def get_config():
@@ -73,20 +75,27 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
     /login - POST - authenticates frontend User and returns JWT
     """
     json_body = await req.json()
-    if json_body['pw'] != config("pw"):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        pw = json_body['pw']
+        uid = json_body['id']
+        name = json_body['name']
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Bad Parameter")
 
-    expires = datetime.timedelta(days=1)
-    access_token = authorize.create_access_token(
-        subject=json_body['id'],
-        headers={"name": json_body['name']},
-        expires_time=expires
-    )
-    refresh_token = authorize.create_refresh_token(subject=json_body['id'], expires_time=False)
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    }
+    if pw != config("pw"):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    else:
+        expires = datetime.timedelta(days=1)
+        access_token = authorize.create_access_token(
+            subject=uid,
+            headers={"name": name},
+            expires_time=expires
+        )
+        refresh_token = authorize.create_refresh_token(subject=uid, expires_time=False)
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        }
 
 
 @app.post('/api/refresh')
@@ -107,7 +116,11 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
     /aggregator-login - POST - aggregator login with token
     """
     json_body = await request.json()
-    token = json_body['token']
+    try:
+        token = json_body['token']
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Bad Parameter")
+
     if token == config("token"):
         aggregator_id = 1
         access_token = authorize.create_access_token(subject=aggregator_id)
@@ -133,22 +146,22 @@ async def get_aggregator_by_id(id: int, authorize: AuthJWT = Depends()):
                       module_name=['snmp'])
         out.append(d.serialize())
         d = oldDevice(id=3, name=f'Cisco1', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
+                      module_name=['snmp'])
         out.append(d.serialize())
         d = oldDevice(id=4, name=f'UbiSW2', ip=f'172.31.37.89', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
+                      module_name=['snmp'])
         out.append(d.serialize())
         d = oldDevice(id=5, name=f'UbiSW3', ip=f'172.31.37.70', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
+                      module_name=['snmp'])
         out.append(d.serialize())
         d = oldDevice(id=6, name=f'UbiAP1', ip=f'172.31.37.78', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
+                      module_name=['snmp'])
         out.append(d.serialize())
         d = oldDevice(id=7, name=f'UbiAP2', ip=f'172.31.37.46', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
+                      module_name=['snmp'])
         out.append(d.serialize())
         d = oldDevice(id=8, name=f'UbiAP3', ip=f'172.31.37.44', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
+                      module_name=['snmp'])
         out.append(d.serialize())
     return out
 
@@ -161,7 +174,12 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
     authorize.jwt_required()
     if id:
         jsondata = await request.json()
-        db.set_aggregator_version(id, jsondata['version'])
+        try:
+            ver = jsondata['version']
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Bad Parameter")
+
+        db.set_aggregator_version(id, ver)
         return {"detail": "updated"}
     raise HTTPException(status_code=400, detail="Bad Parameter")
 
@@ -291,9 +309,14 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
     try:
         jsondata = await request.json()
+        try:
+            devices = jsondata['devices']
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Bad Parameter")
+
         cursor = db.connection.cursor()
 
-        for item in jsondata['devices']:
+        for item in devices:
             id = item['id']
             name = item['name']
             for sd in item['static_data']:

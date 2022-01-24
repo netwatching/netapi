@@ -230,7 +230,12 @@ class DBIO:
         return alert
 
     def insert_aggregator_modules(self, data, aid):
-        for d in data["modules"]:
+        try:
+            modules = data["modules"]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Bad Parameter")
+
+        for d in modules:
             with self.session.begin() as session:
                 sth = insert(Type).values(type=d["id"], config_signature=d["config_signature"],
                                           config_fields=d["config_fields"])
