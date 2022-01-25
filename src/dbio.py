@@ -65,10 +65,12 @@ class DBIO:
 
     def get_devices(self, page, amount):
         with self.session.begin() as session:
+            cat = session.query(Category).filter(Category.category == "Internal").first()
             if page and amount:
                 devices = session \
                     .query(Device.id, Device.category_id, Device.device, Category.category) \
                     .join(Category, Device.category_id == Category.id) \
+                    .filter(Device.category_id != cat.id) \
                     .order_by(Device.id.asc()) \
                     .offset(((page - 1) * amount)) \
                     .limit(amount) \
@@ -77,10 +79,12 @@ class DBIO:
                 devices = session \
                     .query(Device.id, Device.category_id, Device.device, Category.category) \
                     .join(Category, Device.category_id == Category.id) \
+                    .filter(Device.category_id != cat.id) \
                     .order_by(Device.id.asc()) \
                     .all()
             count = session \
                 .query(Device.id) \
+                .filter(Device.category_id != cat.id) \
                 .count()
             session.close()
         return [devices, count]
@@ -171,6 +175,35 @@ class DBIO:
                 .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
                 .filter(Alert.device_id == did) \
                 .filter(Alert.severity >= sever) \
+                .count()
+
+        session.close()
+        return [alert, count]
+
+    def get_alerts_by_device_id_and_severity_time(self, did, severities, page, amount):
+        sevs = list(map(int, severities))
+        with self.session.begin() as session:
+            if page and amount:
+                alert = session \
+                    .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
+                    .filter(Alert.device_id == did) \
+                    .filter(Alert.severity.in_(sevs)) \
+                    .order_by(Alert.timestamp.desc()) \
+                    .offset(((page - 1) * amount)) \
+                    .limit(amount) \
+                    .all()
+            else:
+                alert = session \
+                    .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
+                    .filter(Alert.device_id == did) \
+                    .filter(Alert.severity.in_(sevs)) \
+                    .order_by(Alert.timestamp.desc()) \
+                    .all()
+
+            count = session \
+                .query(Alert.id, Alert.timestamp, Alert.device_id, Alert.problem, Alert.severity) \
+                .filter(Alert.device_id == did) \
+                .filter(Alert.severity.in_(sevs)) \
                 .count()
 
         session.close()

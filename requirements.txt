@@ -36,3 +36,4 @@ watchgod==0.7
 websockets==10.0
 wsproto==1.0.0
 
+fastapi-route-logger-middleware==0.2.3

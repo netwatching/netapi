@@ -1,4 +1,7 @@
+import os
+
 import sqlalchemy.exc
+import logging.config
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
@@ -9,6 +12,7 @@ from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
 import datetime
+from fastapi_route_logger_middleware import RouteLoggerMiddleware
 
 from src.dbio import DBIO
 
@@ -18,6 +22,10 @@ import time
 
 app = FastAPI()
 db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
+
+# Note: Better logging if needed
+#logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
+#app.add_middleware(RouteLoggerMiddleware)
 
 origins = [
     "http://localhost:4200",
@@ -52,7 +60,6 @@ def schema():
 
 
 app.openapi = schema
-
 
 @AuthJWT.load_config
 def get_config():
@@ -359,6 +366,7 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
 async def get_alerts_by_device(
         did: int,
         minSeverity: Optional[int] = 0,
+        severity: Optional[str] = None,
         page: Optional[int] = None,
         amount: Optional[int] = None,
         authorize: AuthJWT = Depends()
@@ -373,7 +381,12 @@ async def get_alerts_by_device(
     out["page"] = page
     out["amount"] = amount
 
-    data = db.get_alerts_by_device_id(did, minSeverity, page, amount)
+
+    if severity:
+        sevs = severity.split('_')
+        data = db.get_alerts_by_device_id_and_severity_time(did, sevs, page, amount)
+    else:
+        data = db.get_alerts_by_device_id(did, minSeverity, page, amount)
 
     out["total"] = data[1]
     out["alerts"] = data[0]
