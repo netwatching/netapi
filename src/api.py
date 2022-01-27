@@ -1,7 +1,6 @@
 import os
 
 import sqlalchemy.exc
-import logging.config
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
@@ -313,9 +312,11 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends data which are being saved in the Database
     """
+    global cursor
     authorize.jwt_required()
     try:
         jsondata = await request.json()
+        cursor = db.connection.cursor()
         try:
             devices = jsondata['devices']
             events = jsondata['external_events']
@@ -330,17 +331,14 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                 feature = f"{sd['key']}{identifier}"
                 values = sd['value']
                 for key in values:
-                    cursor = db.connection.cursor()
                     value = values[key]
                     if isinstance(value, str):
                         db.add_value_string(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
                     else:
                         db.add_value_numeric(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
-                    cursor.close()
         for event_host in events:
             event_values = events[event_host]
             for event in event_values:
-                cursor = db.connection.cursor()
                 event_timestamp = datetime \
                     .datetime \
                     .fromtimestamp(int(event['timestamp'])) \
@@ -352,13 +350,12 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                              severity=event_severity,
                              problem=event_problem,
                              hostname=event_host)
-                cursor.close()
         db.connection.commit()
-        out = {"data": "success"}
+        out = JSONResponse(status_code=200, content={"detail": "success"})
     except BaseException as e:
         print(e)
-        cursor.close()
-        out = {"data": "failed"}
+        out = JSONResponse(status_code=200, content={"detail": "failed"})
+    cursor.close()
     return out
 
 
