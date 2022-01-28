@@ -474,7 +474,7 @@ async def redis(request: Request):
     )
 
     # {
-    #   "device": "testing by Steiger API",
+    #   "device": "TESTING",
     #   "data": {
     #     "in_unicast_packets": {
     #     "2022-01-23 21:00:00": "2000"

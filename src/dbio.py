@@ -263,29 +263,45 @@ class DBIO:
         pool.connection_class()
 
     async def thread_insertIntoDatabase(self):
-        await asyncio.sleep(300)
+        while True:
+            await asyncio.sleep(30 * 60)
+            # Run all 30 minutes
 
-        for i in range(0, len(self.redis_indices)):
-            pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
-                                        password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
-                                        username="default",
-                                        db=i)
-            r = redis.Redis(connection_pool=pool)
+            for i in range(0, len(self.redis_indices)):
+                pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
+                                            password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
+                                            username="default",
+                                            db=i)
+                r = redis.Redis(connection_pool=pool)
 
-            for key in r.scan_iter():
-                scores = r.zrange(key, 0, -1, withscores=True)
+                for key in r.scan_iter():
+                    key = str(key, "utf-8")
+                    # Get all live-data entries currently stored
+                    scores = r.zrange(key, 0, -1, withscores=True)
+                    # Delete all entries of current database so already created events which have occurred in this set are
+                    # not inserted again. This also increases performance
+                    r.flushdb()
 
-                avg_score = 0
-                for score in scores:
-                    avg_score += score[1]
-                avg_score /= len(scores)
+                    with self.session.begin() as session:
+                        device_id = session.query(func.netdb.insDevByCat(key, 3)).all()
 
-                with self.session.begin() as session:
-                    device_id = session.query(func.netdb.insDevByCat(key, 3)).all()
+                        device_id = device_id[0][0]
+                        feature = self.redis_indices[i]
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-                    device_id = device_id[0][0]
-                    feature = self.redis_indices[i]
-                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        avg_score = 0
+                        for score in scores:
+                            avg_score += score[1]
+                            # This values will be changed in the future since currently we can not differentiate between
+                            # normal values and anomalies. Furthermore, it is extremely likely that some values
+                            # might get their own threshold values since every value is differently important. If this is
+                            # the case, the alert-message and severity will be changed accordingly too.
+                            if score[1] >= 1000000:
+                                query = f"Call insAleWithTimestampAndSeverityAndProblemByDevHostnameOrIp(" \
+                                        f"\"{timestamp}\", 3, \"A high level of {feature} has been detected\", \"{key}\", \"null\");"
+                                session.execute(query)
+                        if len(scores) > 0:
+                            avg_score /= len(scores)
 
-                    query = f"Call insValnByFeaNameAndDev({device_id}, \"{feature}\", \"{timestamp}\", {avg_score})"
-                    session.execute(query)
+                        query = f"Call insValnByFeaNameAndDev({device_id}, \"{feature}\", \"{timestamp}\", {avg_score})"
+                        session.execute(query)
