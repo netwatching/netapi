@@ -458,12 +458,12 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 # --- Redis --- #
 
 @app.post("/api/redis")
-async def redis(request: Request):
-#async def redis(request: Request, authorize: AuthJWT = Depends()):
+#async def redis(request: Request):
+async def redis(request: Request, authorize: AuthJWT = Depends()):
     """
     /redis - POST - aggregator sends all live-data variables
     """
-    #authorize.jwt_required()
+    authorize.jwt_required()
 
     jsondata = await request.json()
 
