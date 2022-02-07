@@ -1,5 +1,7 @@
 import os
+import sys
 
+import mysql
 import sqlalchemy.exc
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.openapi.utils import get_openapi
@@ -20,7 +22,11 @@ from random import randint
 import time
 
 app = FastAPI()
-db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
+
+try:
+    db = DBIO(db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
+except mysql.connector.errors.DatabaseError:
+    sys.exit("No Database Connection...\nexiting...")
 
 # Note: Better logging if needed
 #logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -450,13 +456,22 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
 
 
 @app.post("/api/categories/add")
-async def add_categories(authorize: AuthJWT = Depends()):
+async def add_categories(request: Request, authorize: AuthJWT = Depends()):
     """
     /categories - POST - add a new Category to the DB
     """
     authorize.jwt_required()
 
-    return db.get_categories()
+    data = await request.json()
+
+    if data.get('category') is not None:
+        try:
+            db.add_category(data['category'])
+        except sqlalchemy.exc.IntegrityError:
+            raise HTTPException(status_code=400, detail="already exists")
+        return {"status": "success"}
+
+    raise HTTPException(status_code=400, detail="Bad Parameter")
 
 
 # --- Alerts --- #

@@ -1,6 +1,7 @@
 import json
 
 import sqlalchemy as sql
+from decouple import config
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
@@ -8,19 +9,22 @@ from sqlalchemy import asc, desc
 from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, \
     Aggregator_To_Type
 from sqlalchemy.dialects.mysql import insert
+from src.crypt import Crypt
 
 import mysql.connector
-from mysql.connector import Error
 
 
 class DBIO:
     def __init__(self, db_path: str):
+        self.crypt = Crypt()
         if db_path != '':
             self.db_path = db_path
             self.engine = sql.create_engine(self.db_path)
             self.session = sessionmaker(bind=self.engine)
-            self.connection = mysql.connector.connect(host='palguin.htl-vil.local', database='netdb', user='netdb',
-                                                      password='NPlyaVeGq5rse715JvD6',
+            self.connection = mysql.connector.connect(host=config("DBurl"),
+                                                      database=config("DBdatabase"),
+                                                      user=config("DBuser"),
+                                                      password=config("DBpassword"),
                                                       auth_plugin='mysql_native_password')
 
     def add_value_numeric(self, cursor, device_id: int, feature_name: str, key: str, value):
@@ -270,10 +274,11 @@ class DBIO:
 
         for d in modules:
             with self.session.begin() as session:
-                sth = insert(Type).values(type=d["id"], config_signature=d["config_signature"],
-                                          config_fields=d["config_fields"])
-                on_duplicate_sth = sth.on_duplicate_key_update(config_signature=d["config_signature"],
-                                                               config_fields=d["config_fields"])
+                sth = insert(Type).values(type=d["id"],
+                                          config_signature=self.crypt.encrypt(json.dumps(d["config_signature"]), config("cryptokey")),
+                                          config_fields=self.crypt.encrypt(json.dumps(d["config_fields"]), config("cryptokey")))
+                on_duplicate_sth = sth.on_duplicate_key_update(config_signature=self.crypt.encrypt(json.dumps(d["config_signature"]), config("cryptokey")),
+                                                               config_fields=self.crypt.encrypt(json.dumps(d["config_fields"]), config("cryptokey")))
                 session.execute(on_duplicate_sth)
 
                 aggregator = session.query(Aggregator).filter(Aggregator.id == aid).first()
@@ -312,3 +317,12 @@ class DBIO:
                 .count()
             session.close()
             return [alerts, count]
+
+    def add_category(self, category: int):
+        with self.session.begin() as session:
+
+            d = Category(category=category)
+            session.add(d)
+            session.commit()
+            session.close()
+        return

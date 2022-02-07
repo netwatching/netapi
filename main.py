@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
 while True: # Note: Reload if Database crashed
     try:
+        print("Starting...")
         asyncio.run(serve(app, cfg))
     except pymysql.err.OperationalError and sqlalchemy.exc.OperationalError:
         print("Restart due to DB connection loss...")
