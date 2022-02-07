@@ -21,6 +21,8 @@ from src.dbio import DBIO
 from random import randint
 import time
 
+BAD_PARAM = "Bad Parameter"
+
 app = FastAPI()
 
 try:
@@ -94,7 +96,7 @@ async def login(req: Request, authorize: AuthJWT = Depends()):
         uid = json_body['id']
         name = json_body['name']
     except KeyError:
-        raise HTTPException(status_code=400, detail="Bad Parameter")
+        raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     if pw != config("pw"):
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -133,7 +135,7 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
     try:
         token = json_body['token']
     except KeyError:
-        raise HTTPException(status_code=400, detail="Bad Parameter")
+        raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     exists = db.check_token(token)
 
@@ -158,7 +160,7 @@ async def add_aggregator(request: Request, authorize: AuthJWT = Depends()):
     try:
         token = json_body['token']
     except KeyError:
-        raise HTTPException(status_code=400, detail="Bad Parameter")
+        raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     try:
         db.add_aggregator(token)
@@ -220,11 +222,11 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
         try:
             ver = jsondata['version']
         except KeyError:
-            raise HTTPException(status_code=400, detail="Bad Parameter")
+            raise HTTPException(status_code=400, detail=BAD_PARAM)
 
         db.set_aggregator_version(id, ver)
         return {"detail": "updated"}
-    raise HTTPException(status_code=400, detail="Bad Parameter")
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 @app.post("/api/aggregator/{id}/modules")
@@ -242,7 +244,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
             status_code=200,
             content={"detail": "Inserted"}
         )
-    raise HTTPException(status_code=400, detail="Bad Parameter")
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- DEVICES --- #
@@ -338,10 +340,10 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
             devices = jsondata['devices']
             events = jsondata['external_events']
         except KeyError:
-            raise HTTPException(status_code=400, detail="Bad Parameter")
+            raise HTTPException(status_code=400, detail=BAD_PARAM)
 
         for item in devices:
-            id = item['id']
+            device_id = item['id']
             for sd in item['static_data']:
                 identifier = f";{sd['identifier']}" if sd['identifier'] is not None else ''
                 feature = f"{sd['key']}{identifier}"
@@ -349,9 +351,9 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                 for key in values:
                     value = values[key]
                     if isinstance(value, str):
-                        db.add_value_string(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
+                        db.add_value_string(cursor=cursor, device_id=device_id, feature_name=feature, key=key, value=value)
                     else:
-                        db.add_value_numeric(cursor=cursor, device_id=id, feature_name=feature, key=key, value=value)
+                        db.add_value_numeric(cursor=cursor, device_id=device_id, feature_name=feature, key=key, value=value)
         for event_host in events:
             event_values = events[event_host]
             for event in event_values:
@@ -421,7 +423,7 @@ async def add_device(request: Request, authorize: AuthJWT = Depends()):
             raise HTTPException(status_code=400, detail="already exists")
         return {"status": "success"}
 
-    raise HTTPException(status_code=400, detail="Bad Parameter")
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- Features --- #
@@ -480,7 +482,7 @@ async def add_categories(request: Request, authorize: AuthJWT = Depends()):
             raise HTTPException(status_code=400, detail="already exists")
         return {"status": "success"}
 
-    raise HTTPException(status_code=400, detail="Bad Parameter")
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- Alerts --- #

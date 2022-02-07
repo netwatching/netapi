@@ -44,10 +44,10 @@ class DBIO:
             d = session.query(Device).select_from(Device).filter(Device.id == device_id).all()
             f = Feature(feature=feature, device=d[0])
             session.add(f)
-            id = session.query(Feature.id).select_from(Feature).filter(Feature.feature == feature).filter(
+            feature_id = session.query(Feature.id).select_from(Feature).filter(Feature.feature == feature).filter(
                 Feature.device_id == device_id).all()[0][0]
             session.commit()
-        return id
+        return feature_id
 
     def add_device(self, device: str, category: int, ip: str = None):
         with self.session.begin() as session:
@@ -59,7 +59,6 @@ class DBIO:
             session.add(d)
             session.commit()
             session.close()
-        return
 
     def get_full_devices(self):
         with self.session.begin() as session:
@@ -219,7 +218,6 @@ class DBIO:
             aggregator.version = version
             session.commit()
             session.close()
-        return
 
     def get_alerts_by_severity(self, sever, page: int, amount: int):
         with self.session.begin() as session:
@@ -286,13 +284,12 @@ class DBIO:
 
                 aggregator = session.query(Aggregator).filter(Aggregator.id == aid).first()
 
-                type = session.query(Type).filter(Type.type == d["id"]).first()
-                sth = insert(Aggregator_To_Type).values(type_id=type.id, aggregator_id=aggregator.id)
-                on_duplicate_sth = sth.on_duplicate_key_update(type_id=type.id, aggregator_id=aggregator.id)
+                typ = session.query(Type).filter(Type.type == d["id"]).first()
+                sth = insert(Aggregator_To_Type).values(type_id=typ.id, aggregator_id=aggregator.id)
+                on_duplicate_sth = sth.on_duplicate_key_update(type_id=typ.id, aggregator_id=aggregator.id)
                 session.execute(on_duplicate_sth)
             session.commit()
             session.close()
-        return
 
     def get_alerts_by_severity_type(self, severities: dict, page: int, amount: int):
         sevs = list(map(int, severities))
@@ -327,7 +324,6 @@ class DBIO:
             session.add(d)
             session.commit()
             session.close()
-        return
 
     def get_aggregator_devices(self, aggregator_id: int):
         with self.session.begin() as session:
@@ -336,6 +332,7 @@ class DBIO:
                 .filter(Aggregator_To_Type.aggregator_id == aggregator_id) \
                 .all()
             session.close()
+            return ag2type
 
     def check_token(self, token: str):
         with self.session.begin() as session:
@@ -349,4 +346,3 @@ class DBIO:
             session.add(ag)
             session.commit()
             session.close()
-        return
