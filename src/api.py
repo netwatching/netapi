@@ -396,7 +396,7 @@ async def get_alerts_by_device(
     return out
 
 
-@app.post("/api/devices/add")
+@app.post("/api/devices")
 async def add_device(request: Request, authorize: AuthJWT = Depends()):
     """
     /devices/add - GET - adds a new device to the DB
@@ -455,7 +455,7 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     return db.get_categories()
 
 
-@app.post("/api/categories/add")
+@app.post("/api/categories")
 async def add_categories(request: Request, authorize: AuthJWT = Depends()):
     """
     /categories - POST - add a new Category to the DB
