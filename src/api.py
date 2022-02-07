@@ -24,13 +24,14 @@ import time
 app = FastAPI()
 
 try:
-    db = DBIO(db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
+    db = DBIO(
+        db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
 except mysql.connector.errors.DatabaseError:
     sys.exit("No Database Connection...\nexiting...")
 
 # Note: Better logging if needed
-#logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
-#app.add_middleware(RouteLoggerMiddleware)
+# logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
+# app.add_middleware(RouteLoggerMiddleware)
 
 origins = [
     "http://localhost:4200",
@@ -65,6 +66,7 @@ def schema():
 
 
 app.openapi = schema
+
 
 @AuthJWT.load_config
 def get_config():
@@ -133,8 +135,10 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
     except KeyError:
         raise HTTPException(status_code=400, detail="Bad Parameter")
 
-    if token == config("token"):
-        aggregator_id = 1
+    exists = db.check_token(token)
+
+    if exists:
+        aggregator_id = exists.id
         access_token = authorize.create_access_token(subject=aggregator_id)
         refresh_token = authorize.create_refresh_token(subject=aggregator_id)
         return {"token": access_token, "refresh_token": refresh_token, "aggregator_id": aggregator_id}
@@ -142,6 +146,29 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
 
 
 # --- AGGREGATOR --- #
+
+@app.post("/api/aggregator")
+async def add_aggregator(request: Request, authorize: AuthJWT = Depends()):
+    """
+        /aggregator - POST - webinterface can add a new token for a new aggregator
+        """
+    authorize.jwt_required()
+
+    json_body = await request.json()
+    try:
+        token = json_body['token']
+    except KeyError:
+        raise HTTPException(status_code=400, detail="Bad Parameter")
+
+    try:
+        db.add_aggregator(token)
+    except sqlalchemy.exc.IntegrityError:
+        raise HTTPException(status_code=400, detail="Already exists")
+
+    return JSONResponse(
+        status_code=201,
+        content={"detail": "Created"}
+    )
 
 @app.get("/api/aggregator/{id}")
 async def get_aggregator_by_id(id: int, authorize: AuthJWT = Depends()):
@@ -176,6 +203,10 @@ async def get_aggregator_by_id(id: int, authorize: AuthJWT = Depends()):
                       module_name=['snmp'])
         out.append(d.serialize())
     return out
+
+    # if id > 0:
+    #     return db.get_aggregator_devices(id)
+    # raise HTTPException(status_code=400, detail="Bad Parameter")
 
 
 @app.post("/api/aggregator/{id}/version")
@@ -293,26 +324,6 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
     return out
 
 
-@app.get("/api/devices/{id}/data/{senor}")
-async def get_device_sensor_by_id(id: int, sensor: str, authorize: AuthJWT = Depends()):
-    """
-    /devices/{id}/data/{senor} - GET -  returns data from sensor by device
-    """
-
-    authorize.jwt_required()
-
-    out = {}
-    d = oldDevice(id=id, name=f'device{id}', ip=f'10.10.10.{id}', type='Cisco' if id % 2 else 'Ubiquiti',
-                  aggregator_id=1 if id < 6 else 2, timeout=10)
-    out["device"] = d.serialize()
-    data = {}
-    t = time.time()
-    for i in range(100):
-        data[(t + i)] = randint(10, 20)
-    out[sensor] = data
-    return out
-
-
 @app.post("/api/devices/data")
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     """
@@ -328,7 +339,6 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
             events = jsondata['external_events']
         except KeyError:
             raise HTTPException(status_code=400, detail="Bad Parameter")
-
 
         for item in devices:
             id = item['id']
@@ -383,7 +393,6 @@ async def get_alerts_by_device(
 
     out["page"] = page
     out["amount"] = amount
-
 
     if severity:
         sevs = severity.split('_')

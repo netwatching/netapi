@@ -275,10 +275,13 @@ class DBIO:
         for d in modules:
             with self.session.begin() as session:
                 sth = insert(Type).values(type=d["id"],
-                                          config_signature=self.crypt.encrypt(json.dumps(d["config_signature"]), config("cryptokey")),
-                                          config_fields=self.crypt.encrypt(json.dumps(d["config_fields"]), config("cryptokey")))
-                on_duplicate_sth = sth.on_duplicate_key_update(config_signature=self.crypt.encrypt(json.dumps(d["config_signature"]), config("cryptokey")),
-                                                               config_fields=self.crypt.encrypt(json.dumps(d["config_fields"]), config("cryptokey")))
+                                          config_signature=self.crypt.encrypt(json.dumps(d["config_signature"]),
+                                                                              config("cryptokey")),
+                                          config_fields=self.crypt.encrypt(json.dumps(d["config_fields"]),
+                                                                           config("cryptokey")))
+                on_duplicate_sth = sth.on_duplicate_key_update(
+                    config_signature=self.crypt.encrypt(json.dumps(d["config_signature"]), config("cryptokey")),
+                    config_fields=self.crypt.encrypt(json.dumps(d["config_fields"]), config("cryptokey")))
                 session.execute(on_duplicate_sth)
 
                 aggregator = session.query(Aggregator).filter(Aggregator.id == aid).first()
@@ -320,9 +323,30 @@ class DBIO:
 
     def add_category(self, category: int):
         with self.session.begin() as session:
-
             d = Category(category=category)
             session.add(d)
+            session.commit()
+            session.close()
+        return
+
+    def get_aggregator_devices(self, aggregator_id: int):
+        with self.session.begin() as session:
+            ag2type = session \
+                .query(Aggregator_To_Type.id) \
+                .filter(Aggregator_To_Type.aggregator_id == aggregator_id) \
+                .all()
+            session.close()
+
+    def check_token(self, token: str):
+        with self.session.begin() as session:
+            ag = session.query(Aggregator).filter(Aggregator.token == token).first()
+            session.close()
+            return ag
+
+    def add_aggregator(self, token: str):
+        with self.session.begin() as session:
+            ag = Aggregator(token=token, version="created")
+            session.add(ag)
             session.commit()
             session.close()
         return
