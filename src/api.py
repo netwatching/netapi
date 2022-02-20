@@ -12,13 +12,15 @@ from typing import Optional
 import datetime
 
 from src.dbio import DBIO
+from src.mongo import Mongo
 
 # only for test
 from random import randint
 import time
 
 app = FastAPI()
-db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
+#db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
+mongo = Mongo(details="mongodb://netdb:n#Nz$9N+rXy2jS7E7fE*W#mC%+d--*B76AX#S?!FK8mHG9jTFjc^t=baCVmyvpFY+n=h4p6*wUR24K?Q9tgVDzF-L98C@GZ4tEd?MBFpCYwRK???ZhQ_GqfV*W+Str5y@172.50.0.100:27017")
 
 origins = [
     "http://localhost:4200",
@@ -120,41 +122,16 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
 
 # --- AGGREGATOR --- #
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/aggregator/{id}")
 async def get_aggregator_by_id(id: int, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
     """
     authorize.jwt_required()
-    out = []
-    if id > 0:
-        d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbi', aggregator_id=id, timeout=10,
-                      module_name=['problems', 'events'])
-        out.append(d.serialize())
-        d = oldDevice(id=2, name=f'UbiSW1', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=3, name=f'Cisco1', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=4, name=f'UbiSW2', ip=f'172.31.37.89', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=5, name=f'UbiSW3', ip=f'172.31.37.70', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=6, name=f'UbiAP1', ip=f'172.31.37.78', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=7, name=f'UbiAP2', ip=f'172.31.37.46', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=8, name=f'UbiAP3', ip=f'172.31.37.44', type='Ubiquiti', aggregator_id=id, timeout=10,
-              module_name=['snmp'])
-        out.append(d.serialize())
-    return out
 
 
+# ------------------- REBUILD ----------------------
 @app.post("/api/aggregator/{id}/version")
 async def get_aggregator_version_by_id(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
@@ -168,6 +145,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
     raise HTTPException(status_code=400, detail="Bad Parameter")
 
 
+# ------------------- REBUILD ----------------------
 @app.post("/api/aggregator/{id}/modules")
 async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
@@ -178,7 +156,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
     if id:
         jsondata = await request.json()
 
-        db.insert_aggregator_modules(jsondata, id)
+        mongo.insert_aggregator_modules(jsondata, id)
         return JSONResponse(
             status_code=200,
             content={"detail": "Inserted"}
@@ -189,6 +167,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 # --- DEVICES --- #
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/devices")
 async def get_all_devices(authorize: AuthJWT = Depends()):
     """
@@ -196,9 +175,10 @@ async def get_all_devices(authorize: AuthJWT = Depends()):
     """
     authorize.jwt_required()
 
-    return db.get_devices()
+    return mongo.get_devices()
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/devices/{id}")
 async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
@@ -207,11 +187,12 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     if id is not None:
-        device = db.get_device_by_id(id)
+        device = mongo.get_device_by_id(id)
 
-    return device[0]
+    return device
 
 
+# ------------------- DISCARD ----------------------
 @app.get("/api/devices/{id}/features")
 async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
     """
@@ -248,6 +229,7 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/devices/{id}/data/{senor}")
 async def get_device_sensor_by_id(id: int, sensor: str, authorize: AuthJWT = Depends()):
     """
@@ -268,10 +250,11 @@ async def get_device_sensor_by_id(id: int, sensor: str, authorize: AuthJWT = Dep
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.post("/api/devices/data")
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     """
-    /devices/data - POST - aggregator sends data which are being saved in the Database
+    /devices/data - POST - aggregator sends data which is saved in the Database
     """
     authorize.jwt_required()
     try:
@@ -309,6 +292,7 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/devices/{did}/alerts")
 async def get_alerts_by_device(
         did: int,
@@ -334,6 +318,7 @@ async def get_alerts_by_device(
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.post("/api/devices/add")
 async def add_device(request: Request, authorize: AuthJWT = Depends()):
     """
@@ -355,6 +340,7 @@ async def add_device(request: Request, authorize: AuthJWT = Depends()):
 
 # --- Features --- #
 
+# ------------------- DISCARD ----------------------
 @app.get("/api/features")
 async def get_all_features(authorize: AuthJWT = Depends()):
     """
@@ -383,6 +369,8 @@ async def get_all_features(authorize: AuthJWT = Depends()):
 
 # --- Category --- #
 
+
+# ------------------- REBUILD ----------------------
 @app.get("/api/categories")
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
@@ -393,6 +381,7 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     return db.get_categories()
 
 
+# ------------------- REBUILD ----------------------
 @app.post("/api/categories/add")
 async def add_categories(authorize: AuthJWT = Depends()):
     """
@@ -405,6 +394,7 @@ async def add_categories(authorize: AuthJWT = Depends()):
 
 # --- Alerts --- #
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/alerts")
 async def get_all_alerts(
         minSeverity: Optional[int] = 0,
@@ -434,6 +424,7 @@ async def get_all_alerts(
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/alerts/{aid}")
 async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
     """
@@ -445,6 +436,9 @@ async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
 
 
 # --- Modules --- #
+
+# ------------------- DISCARD ----------------------
+# ------------------- REBUILD ----------------------
 @app.get("/api/modules")
 async def get_all_modules(authorize: AuthJWT = Depends()):
     """
@@ -457,6 +451,8 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 
 # --- Redis --- #
 
+
+# ------------------- REBUILD ----------------------
 @app.post("/api/redis")
 #async def redis(request: Request):
 async def redis(request: Request, authorize: AuthJWT = Depends()):
