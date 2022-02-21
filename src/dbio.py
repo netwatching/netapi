@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import asc, desc
-from src.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, \
+from src.models.models import Category, Device, Feature, Value_Numeric, Value_String, Alert, Aggregator, Module, Type, \
     Aggregator_To_Type
 from sqlalchemy.dialects.mysql import insert
 from src.crypt import Crypt
@@ -357,7 +357,9 @@ class DBIO:
             session.add(ag)
             session.commit()
             session.close()
-   def redis_insert_live_data(self, data):
+
+
+    def redis_insert_live_data(self, data):
         hostname = data["device"]
 
         for interface_index in data["data"]:

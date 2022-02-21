@@ -41,3 +41,5 @@ fastapi-route-logger-middleware==0.2.3
 pymodm~=0.4.3
 redis~=4.1.1
 mysql~=0.0.3
+
+pycryptodome==3.14.1
