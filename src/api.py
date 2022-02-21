@@ -3,6 +3,7 @@ import sys
 
 import mysql
 import sqlalchemy.exc
+import uvicorn as uvicorn
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
@@ -16,6 +17,7 @@ import datetime
 from fastapi_route_logger_middleware import RouteLoggerMiddleware
 
 from src.dbio import DBIO
+from src.mongo import Mongo
 
 # only for test
 from random import randint
@@ -24,7 +26,6 @@ import time
 BAD_PARAM = "Bad Parameter"
 
 app = FastAPI()
-
 try:
     db = DBIO(
         db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
@@ -34,6 +35,8 @@ except mysql.connector.errors.DatabaseError:
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
+mongo = Mongo(details="mongodb://netdb:n#Nz$9N+rXy2jS7E7fE*W#mC%+d--*B76AX#S?!FK8mHG9jTFjc^t=baCVmyvpFY+n=h4p6*wUR24K?Q9tgVDzF-L98C@GZ4tEd?MBFpCYwRK???ZhQ_GqfV*W+Str5y@172.50.0.100:27017")
+
 
 origins = [
     "http://localhost:4200",
@@ -50,25 +53,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 def schema():
-    openapi_schema = get_openapi(
-        title="NetAPI",
-        version="1.0",
-        routes=app.routes,
-    )
-    openapi_schema["info"] = {
-        "title": "NetAPI",
-        "version": "1.0",
-        "description": "API for the NetWatch project",
-    }
-    app.openapi_schema = openapi_schema
+   openapi_schema = get_openapi(
+       title="NetAPI",
+       version="1.0",
+       routes=app.routes,
+   )
+   openapi_schema["info"] = {
+       "title" : "NetAPI",
+       "version" : "1.0",
+       "description" : "API for the NetWatch project",
+   }
+   app.openapi_schema = openapi_schema
 
-    return app.openapi_schema
+   return app.openapi_schema
 
 
 app.openapi = schema
-
 
 @AuthJWT.load_config
 def get_config():
@@ -148,7 +149,7 @@ async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
 
 
 # --- AGGREGATOR --- #
-
+# ------------------- REBUILD ----------------------
 @app.post("/api/aggregator")
 async def add_aggregator(request: Request, authorize: AuthJWT = Depends()):
     """
@@ -210,7 +211,7 @@ async def get_aggregator_by_id(id: int, authorize: AuthJWT = Depends()):
     #     return db.get_aggregator_devices(id)
     # raise HTTPException(status_code=400, detail="Bad Parameter")
 
-
+# ------------------- REBUILD ----------------------
 @app.post("/api/aggregator/{id}/version")
 async def get_aggregator_version_by_id(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
@@ -229,6 +230,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
+# ------------------- REBUILD ----------------------
 @app.post("/api/aggregator/{id}/modules")
 async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
@@ -250,6 +252,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 # --- DEVICES --- #
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/devices")
 async def get_all_devices(
         category: Optional[str] = None,
@@ -290,6 +293,7 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     return device[0]
 
 
+# ------------------- DISCARD ----------------------
 @app.get("/api/devices/{id}/features")
 async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
     """
@@ -323,13 +327,15 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
         out["interfaces"] = ifs
         out["ipAddresses"] = ips
 
+
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.post("/api/devices/data")
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     """
-    /devices/data - POST - aggregator sends data which are being saved in the Database
+    /devices/data - POST - aggregator sends data which is saved in the Database
     """
     global cursor
     authorize.jwt_required()
@@ -377,6 +383,7 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/devices/{did}/alerts")
 async def get_alerts_by_device(
         did: int,
@@ -428,6 +435,7 @@ async def add_device(request: Request, authorize: AuthJWT = Depends()):
 
 # --- Features --- #
 
+# ------------------- DISCARD ----------------------
 @app.get("/api/features")
 async def get_all_features(authorize: AuthJWT = Depends()):
     """
@@ -455,6 +463,7 @@ async def get_all_features(authorize: AuthJWT = Depends()):
 
 
 # --- Category --- #
+# ------------------- REBUILD ----------------------
 
 @app.get("/api/categories")
 async def get_all_categories(authorize: AuthJWT = Depends()):
@@ -487,6 +496,7 @@ async def add_categories(request: Request, authorize: AuthJWT = Depends()):
 
 # --- Alerts --- #
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/alerts")
 async def get_all_alerts(
         minSeverity: Optional[int] = 0,
@@ -516,6 +526,7 @@ async def get_all_alerts(
     return out
 
 
+# ------------------- REBUILD ----------------------
 @app.get("/api/alerts/{aid}")
 async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
     """
@@ -527,6 +538,9 @@ async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
 
 
 # --- Modules --- #
+
+# ------------------- DISCARD ----------------------
+# ------------------- REBUILD ----------------------
 @app.get("/api/modules")
 async def get_all_modules(authorize: AuthJWT = Depends()):
     """
@@ -535,6 +549,36 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     return db.get_modules()
+
+
+# --- Redis --- #
+
+
+# ------------------- REBUILD ----------------------
+@app.post("/api/redis")
+#async def redis(request: Request):
+async def redis(request: Request, authorize: AuthJWT = Depends()):
+    """
+    /redis - POST - aggregator sends all live-data variables
+    """
+    authorize.jwt_required()
+
+    jsondata = await request.json()
+
+    db.redis_insert_live_data(jsondata)
+    return JSONResponse(
+        status_code=200,
+        content={"detail": "Inserted"}
+    )
+
+    # {
+    #     "device": "TESTING",
+    #     "data": {
+    #         "in_bytes": {
+    #             "2022-01-23 21:00:00": "2000"
+    #         }
+    #     }
+    # }
 
 
 # --- Exception Handling --- #
