@@ -10,6 +10,7 @@ from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
 from src.models.device import Device
 
+
 class Mongo:
     def __init__(self, details):
         self.details = details
@@ -50,7 +51,6 @@ class Mongo:
         except pymongo.errors.DuplicateKeyError as e:
             print(e)
 
-
     def get_modules(self):
         try:
             modules = list(Module.objects.order_by([['type', DESCENDING]]).all())
@@ -58,22 +58,24 @@ class Mongo:
         except Exception as e:
             print(e)
 
-    def add_device(self, device: str, category: str, ip: str = None):
+    def add_device(self, hostname: str, category: str, ip: str = None):
         try:
             device = Device(
-                hostname=device,
+                hostname=hostname,
                 ip=ip,
                 category=category).save()
             return device
         except Exception as e:
             print(e)
 
-mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
-#mongo.test()
+
+mongo = Mongo(
+    details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
+# mongo.test()
 
 modules = mongo.get_modules()
 print(modules)
 
 time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-device = mongo.add_device(device=f'test.{time}', category='test', ip='192.126.12.1')
+device = mongo.add_device(hostname=f'test.{time}', category='test', ip='192.126.12.1')
 print(device.pk)
