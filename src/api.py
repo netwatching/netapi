@@ -19,7 +19,7 @@ from random import randint
 import time
 
 app = FastAPI()
-#db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
+db = DBIO(db_path='mysql+pymysql://netdb:NPlyaVeGq5rse715JvD6@palguin.htl-vil.local:3306/netdb')
 mongo = Mongo(details="mongodb://netdb:n#Nz$9N+rXy2jS7E7fE*W#mC%+d--*B76AX#S?!FK8mHG9jTFjc^t=baCVmyvpFY+n=h4p6*wUR24K?Q9tgVDzF-L98C@GZ4tEd?MBFpCYwRK???ZhQ_GqfV*W+Str5y@172.50.0.100:27017")
 
 origins = [
