@@ -13,6 +13,7 @@ from src.models.device import Device
 class Mongo:
     def __init__(self, details):
         self.details = details
+        connection.connect(self.details)
 
     def test(self):
         try:
@@ -52,7 +53,6 @@ class Mongo:
 
     def get_modules(self):
         try:
-            connection.connect(self.details)
             modules = list(Module.objects.order_by([['type', DESCENDING]]).all())
             return modules
         except Exception as e:
