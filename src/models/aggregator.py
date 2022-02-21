@@ -1,5 +1,6 @@
 from pymodm import MongoModel, fields, GenericIPAddressField, ReferenceField
 from pymongo import IndexModel, DESCENDING
+from src.models.device import Device
 
 
 class Type(MongoModel):
@@ -10,6 +11,7 @@ class Type(MongoModel):
 class Module(MongoModel):
     config = fields.CharField(required=False)
     type = fields.ReferenceField(Type, on_delete=ReferenceField.DENY)
+    devices = fields.ListField(ReferenceField(Device, on_delete=ReferenceField.DENY))
 
 
 class Aggregator(MongoModel):
