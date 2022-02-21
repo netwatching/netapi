@@ -8,13 +8,13 @@ import pymongo.errors
 from src.models.event import Event
 from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
-from src.models.device import Device
+from src.models.device import Device, Category
 
 
 class Mongo:
     def __init__(self, details):
         self.details = details
-        connection.connect(self.details)
+        connection.connect(details)
 
     def test(self):
         try:
@@ -24,11 +24,14 @@ class Mongo:
             data = json.dumps(data)
             data = json.loads(data)
 
+            # Creating and saving new category
+            category = Category(category="testing").save()
+
             # Creating and saving a new device
             device = Device(
                 hostname="localhost",
                 ip="192.169.0.1",
-                category="testing",
+                category=category,
                 static=[data, data],
                 live=[data, data]).save()
 
@@ -44,9 +47,9 @@ class Mongo:
             # Retrieving a list of events
             events = list(Event.objects.raw({'event': {'$regex': 'test', '$options': 'gm'}}))
 
-            # Deleting an event and a device
+            # Deleting an event and a category
             event.delete()
-            device.delete()
+            category.delete()
 
         except pymongo.errors.DuplicateKeyError as e:
             print(e)
@@ -58,7 +61,14 @@ class Mongo:
         except Exception as e:
             print(e)
 
-    def add_device(self, hostname: str, category: str, ip: str = None):
+    def add_category(self, category: str):
+        try:
+            category = Category(category=category).save()
+            return category
+        except Exception as e:
+            print(e)
+
+    def add_device(self, hostname: str, category: Category, ip: str = None):
         try:
             device = Device(
                 hostname=hostname,
@@ -69,13 +79,16 @@ class Mongo:
             print(e)
 
 
-mongo = Mongo(
-    details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
-# mongo.test()
+mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
+mongo.test()
 
 modules = mongo.get_modules()
 print(modules)
 
 time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-device = mongo.add_device(hostname=f'test.{time}', category='test', ip='192.126.12.1')
+
+category = mongo.add_category(category=f'test.{time}')
+print(category.pk)
+
+device = mongo.add_device(hostname=f'test.{time}', category=category, ip='192.126.12.1')
 print(device.pk)
