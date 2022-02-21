@@ -35,7 +35,7 @@ except mysql.connector.errors.DatabaseError:
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
-mongo = Mongo(details="mongodb://netdb:n#Nz$9N+rXy2jS7E7fE*W#mC%+d--*B76AX#S?!FK8mHG9jTFjc^t=baCVmyvpFY+n=h4p6*wUR24K?Q9tgVDzF-L98C@GZ4tEd?MBFpCYwRK???ZhQ_GqfV*W+Str5y@172.50.0.100:27017")
+mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb")
 
 
 origins = [
