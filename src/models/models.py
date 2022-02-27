@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from decouple import config
 from sqlalchemy import Numeric, ForeignKey, Column, String, JSON, Integer, TIMESTAMP
@@ -9,7 +9,6 @@ import sqlalchemy_repr as repr
 # only for test
 from random import randint
 
-
 Base = declarative_base(cls=repr.RepresentableBase)
 
 
@@ -18,7 +17,7 @@ class User(BaseModel):
 
 
 class Settings(BaseModel):
-    #authjwt_secret_key: str = config("secret")
+    # authjwt_secret_key: str = config("secret")
     authjwt_secret_key: str = "secret"
 
 
@@ -50,6 +49,11 @@ class AddAggregatorIn(BaseModel):
 class AddAggregatorOut(BaseModel):
     detail: str = "Created"
 
+
+class DeviceById(BaseModel):
+    id: str = Field(..., default="621bcca84763b786518e2a4f")
+
+
 # --- Old Models for old DB --- #
 
 class oldDevice(BaseModel):  # old device model, should be deleted
@@ -76,7 +80,7 @@ class oldDevice(BaseModel):  # old device model, should be deleted
             "ip": self.ip,
             "type": self.type,
             "modules": modules
-          }
+        }
         return out
 
     def serialize_without_id(self):
@@ -89,7 +93,7 @@ class oldDevice(BaseModel):  # old device model, should be deleted
             "ip": self.ip,
             "type": self.type,
             "modules": modules
-          }
+        }
         return out
 
 
@@ -186,12 +190,14 @@ class Module(Base):
     config_fields = Column(JSON)
     device_id = Column(Integer, ForeignKey('Device.id'))
 
+
 class Type(Base):
     __tablename__ = "Type"
     id = Column(Integer, primary_key=True, autoincrement=True)
     type = Column(String, unique=True)
     config_signature = Column(JSON)
     config_fields = Column(JSON)
+
 
 class Aggregator_To_Type(Base):
     __tablename__ = "Aggregator_To_Type"

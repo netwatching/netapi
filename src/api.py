@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, DeviceById
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -42,7 +42,8 @@ except mysql.connector.errors.DatabaseError:
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
 
-mongo = MongoDBIO(details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
+mongo = MongoDBIO(
+    details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
 
 origins = [
     "http://localhost:4200",
@@ -230,7 +231,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     return JSONResponse(status_code=201, content={"detail": "Created"})
 
 
-@app.get("/api/aggregator/{id}") # TODO: rewrite
+@app.get("/api/aggregator/{id}")  # TODO: rewrite
 async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -245,7 +246,7 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     return json_string
 
 
-@app.post("/api/aggregator/{id}/version") # TODO: rewrite
+@app.post("/api/aggregator/{id}/version")  # TODO: rewrite
 async def get_aggregator_version_by_id(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/version - POST - set version of the aggregator
@@ -263,7 +264,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/aggregator/{id}/modules") # TODO: rewrite
+@app.post("/api/aggregator/{id}/modules")  # TODO: rewrite
 async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
@@ -282,7 +283,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 
 
 # --- DEVICES --- #
-@app.get("/api/devices") # TODO: rewrite
+@app.get("/api/devices")  # TODO: rewrite
 async def get_all_devices(
         category: Optional[str] = None,
         page: Optional[int] = None,
@@ -309,17 +310,15 @@ async def get_all_devices(
     return out
 
 
-@app.get("/api/devices/{id}") # TODO: rewrite
-async def device_by_id(id: int, authorize: AuthJWT = Depends()):
+@app.get("/api/devices/{id}")  # TODO: rewrite
+async def device_by_id(request: DeviceById, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns device infos with specified id
     """
     authorize.jwt_required()
 
-    if id is not None:
-        device = db.get_device_by_id(id)
-
-    return device[0]
+    device = mongo.get_device_by_id(DeviceById.id)
+    return JSONResponse(status_code=200, content=json.dumps(device))
 
 
 # ------------------- DISCARD ----------------------
@@ -358,7 +357,7 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
 #
 #     return out
 
-@app.post("/api/devices/data") # TODO: rewrite
+@app.post("/api/devices/data")  # TODO: rewrite
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends data which is saved in the Database
@@ -411,7 +410,7 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     return out
 
 
-@app.get("/api/devices/{did}/alerts") # TODO: rewrite
+@app.get("/api/devices/{did}/alerts")  # TODO: rewrite
 async def get_alerts_by_device(
         did: int,
         minSeverity: Optional[int] = 0,
@@ -441,7 +440,7 @@ async def get_alerts_by_device(
     return out
 
 
-@app.post("/api/devices") # TODO: rewrite
+@app.post("/api/devices")  # TODO: rewrite
 async def add_device(request: Request, authorize: AuthJWT = Depends()):
     """
     /devices/add - GET - adds a new device to the DB
@@ -489,7 +488,7 @@ async def add_device(request: Request, authorize: AuthJWT = Depends()):
 
 
 # --- Category --- #
-@app.get("/api/categories") # TODO: rewrite
+@app.get("/api/categories")  # TODO: rewrite
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories
@@ -499,7 +498,7 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     return db.get_categories()
 
 
-@app.post("/api/categories") # TODO: rewrite
+@app.post("/api/categories")  # TODO: rewrite
 async def add_categories(request: Request, authorize: AuthJWT = Depends()):
     """
     /categories - POST - add a new Category to the DB
@@ -519,7 +518,7 @@ async def add_categories(request: Request, authorize: AuthJWT = Depends()):
 
 
 # --- Alerts --- #
-@app.get("/api/alerts") # TODO: rewrite
+@app.get("/api/alerts")  # TODO: rewrite
 async def get_all_alerts(
         minSeverity: Optional[int] = 0,
         severity: Optional[str] = None,
@@ -548,7 +547,7 @@ async def get_all_alerts(
     return out
 
 
-@app.get("/api/alerts/{aid}") # TODO: rewrite
+@app.get("/api/alerts/{aid}")  # TODO: rewrite
 async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
     """
     /alerts/{aid} - GET - get specific alert by id
@@ -559,7 +558,7 @@ async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
 
 
 # --- Modules --- #
-@app.get("/api/modules") # TODO: rewrite
+@app.get("/api/modules")  # TODO: rewrite
 async def get_all_modules(authorize: AuthJWT = Depends()):
     """
     /modules - GET - get all modules
@@ -570,7 +569,7 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 
 
 # --- Redis --- #
-@app.post("/api/redis") # TODO: rewrite @Tobi
+@app.post("/api/redis")  # TODO: rewrite @Tobi
 # async def redis(request: Request):
 async def redis(request: Request, authorize: AuthJWT = Depends()):
     """
