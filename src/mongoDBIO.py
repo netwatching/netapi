@@ -55,7 +55,7 @@ class MongoDBIO:
     def get_aggregator_devices(self, id: str):
         try:
             ag = Aggregator.objects.get({'_id': id})
-            return ag.devices.to_son().to_dict()
+            return ag.devices
         except Aggregator.DoesNotExist:
             return False
         except Aggregator.MultipleObjectsReturned:

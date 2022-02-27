@@ -14,11 +14,13 @@ from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, DeviceById
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus,  DeviceById
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
 import datetime
+import humanize
+import git
 from fastapi_route_logger_middleware import RouteLoggerMiddleware
 import pymongo.errors
 
@@ -31,6 +33,9 @@ import time
 
 BAD_PARAM = "Bad Parameter"
 
+start_time = datetime.datetime.now()
+version = git.Repo(search_parent_directories=True).git.describe("--abbrev", "--always")
+
 app = FastAPI()
 try:
     db = DBIO(
@@ -42,8 +47,7 @@ except mysql.connector.errors.DatabaseError:
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
 
-mongo = MongoDBIO(
-    details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
+mongo = MongoDBIO(details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
 
 origins = [
     "http://localhost:4200",
@@ -65,8 +69,8 @@ def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
-        title="OrderService",
-        version="DEV",
+        title="NetAPI",
+        version=version,
         routes=app.routes,
     )
     openapi_schema["info"]["x-logo"] = {
@@ -101,7 +105,7 @@ def custom_openapi():
         methods = [method.lower() for method in getattr(route, "methods")]
 
         for method in methods:
-            # access_token
+
             if (
                     re.search("jwt_required", inspect.getsource(endpoint)) or
                     re.search("fresh_jwt_required", inspect.getsource(endpoint)) or
@@ -111,7 +115,7 @@ def custom_openapi():
                     'security': [{"AccessToken": []}]
                 })
 
-            # refresh_token
+
             if re.search("jwt_refresh_token_required", inspect.getsource(endpoint)):
                 openapi_schema["paths"][path][method].update({
                     'security': [{"RefreshToken": []}]
@@ -129,12 +133,14 @@ def get_config():
     return Settings()
 
 
-@app.get("/")
-async def test() -> dict:
-    """
-    / - GET - Testing Endpoint to verify API connectivity
-    """
-    return {"NetAPI": "hello"}
+@app.get("/",
+         summary="Check service status",
+         response_model=APIStatus)
+async def root() -> APIStatus:
+    time_delta = datetime.datetime.now() - start_time
+    output_time = humanize.naturaldelta(time_delta)
+    return APIStatus(version=version, uptime=output_time)
+
 
 
 # --- AUTHENTICATION--- #
@@ -231,7 +237,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     return JSONResponse(status_code=201, content={"detail": "Created"})
 
 
-@app.get("/api/aggregator/{id}")  # TODO: rewrite
+@app.get("/api/aggregator/{id}") # TODO: rewrite
 async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -241,12 +247,12 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     if id == "":
         raise HTTPException(status_code=400, detail=BAD_PARAM)
 
-    db = mongo.get_aggregator_devices(id)
-    json_string = json.dumps(db)
+    db_result = mongo.get_aggregator_devices(id).to_son().to_dict()
+    json_string = json.dumps(db_result)
     return json_string
 
 
-@app.post("/api/aggregator/{id}/version")  # TODO: rewrite
+@app.post("/api/aggregator/{id}/version") # TODO: rewrite
 async def get_aggregator_version_by_id(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/version - POST - set version of the aggregator
@@ -264,7 +270,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/aggregator/{id}/modules")  # TODO: rewrite
+@app.post("/api/aggregator/{id}/modules") # TODO: rewrite
 async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
@@ -283,7 +289,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 
 
 # --- DEVICES --- #
-@app.get("/api/devices")  # TODO: rewrite
+@app.get("/api/devices") # TODO: rewrite
 async def get_all_devices(
         category: Optional[str] = None,
         page: Optional[int] = None,
