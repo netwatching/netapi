@@ -230,7 +230,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     return JSONResponse(status_code=201, content={"detail": "Created"})
 
 
-@app.get("/api/aggregator/{id}")
+@app.get("/api/aggregator/{id}") # TODO: rewrite
 async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -245,8 +245,7 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     return json_string
 
 
-# ------------------- REBUILD ----------------------
-@app.post("/api/aggregator/{id}/version")
+@app.post("/api/aggregator/{id}/version") # TODO: rewrite
 async def get_aggregator_version_by_id(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/version - POST - set version of the aggregator
@@ -264,8 +263,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-# ------------------- REBUILD ----------------------
-@app.post("/api/aggregator/{id}/modules")
+@app.post("/api/aggregator/{id}/modules") # TODO: rewrite
 async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
@@ -284,10 +282,7 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 
 
 # --- DEVICES --- #
-
-
-# ------------------- REBUILD ----------------------
-@app.get("/api/devices")
+@app.get("/api/devices") # TODO: rewrite
 async def get_all_devices(
         category: Optional[str] = None,
         page: Optional[int] = None,
@@ -314,7 +309,7 @@ async def get_all_devices(
     return out
 
 
-@app.get("/api/devices/{id}")
+@app.get("/api/devices/{id}") # TODO: rewrite
 async def device_by_id(id: int, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns device infos with specified id
@@ -328,44 +323,42 @@ async def device_by_id(id: int, authorize: AuthJWT = Depends()):
 
 
 # ------------------- DISCARD ----------------------
-@app.get("/api/devices/{id}/features")
-async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
-    """
-    /devices/{id} - GET - returns device features with id
-    """
-    authorize.jwt_required()
+# @app.get("/api/devices/{id}/features")
+# async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
+#     """
+#     /devices/{id} - GET - returns device features with id
+#     """
+#     authorize.jwt_required()
+#
+#     if id is not None:
+#         out = {}
+#         dic = {}
+#         ifs = []
+#         ips = []
+#         features = db.get_device_features_by_id(id)
+#
+#         for f in features:
+#             for val_s in f.value_strings:
+#                 if val_s is not None:
+#                     dic[val_s.key] = val_s.value
+#             for val_n in f.value_numerics:
+#                 if val_n is not None:
+#                     dic[val_n.key] = val_n.value
+#
+#             if "interfaces;" in f.feature:
+#                 ifs.append(dic)
+#             elif "ipAddresses;" in f.feature:
+#                 ips.append(dic)
+#             else:
+#                 out[f.feature] = dic
+#             dic = {}
+#
+#         out["interfaces"] = ifs
+#         out["ipAddresses"] = ips
+#
+#     return out
 
-    if id is not None:
-        out = {}
-        dic = {}
-        ifs = []
-        ips = []
-        features = db.get_device_features_by_id(id)
-
-        for f in features:
-            for val_s in f.value_strings:
-                if val_s is not None:
-                    dic[val_s.key] = val_s.value
-            for val_n in f.value_numerics:
-                if val_n is not None:
-                    dic[val_n.key] = val_n.value
-
-            if "interfaces;" in f.feature:
-                ifs.append(dic)
-            elif "ipAddresses;" in f.feature:
-                ips.append(dic)
-            else:
-                out[f.feature] = dic
-            dic = {}
-
-        out["interfaces"] = ifs
-        out["ipAddresses"] = ips
-
-    return out
-
-
-# ------------------- REBUILD ----------------------
-@app.post("/api/devices/data")
+@app.post("/api/devices/data") # TODO: rewrite
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends data which is saved in the Database
@@ -418,8 +411,7 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
     return out
 
 
-# ------------------- REBUILD ----------------------
-@app.get("/api/devices/{did}/alerts")
+@app.get("/api/devices/{did}/alerts") # TODO: rewrite
 async def get_alerts_by_device(
         did: int,
         minSeverity: Optional[int] = 0,
@@ -449,7 +441,7 @@ async def get_alerts_by_device(
     return out
 
 
-@app.post("/api/devices")
+@app.post("/api/devices") # TODO: rewrite
 async def add_device(request: Request, authorize: AuthJWT = Depends()):
     """
     /devices/add - GET - adds a new device to the DB
@@ -469,38 +461,35 @@ async def add_device(request: Request, authorize: AuthJWT = Depends()):
 
 
 # --- Features --- #
-
 # ------------------- DISCARD ----------------------
-@app.get("/api/features")
-async def get_all_features(authorize: AuthJWT = Depends()):
-    """
-    /features - GET - get all available features
-    """
-    authorize.jwt_required()
-
-    features = db.get_features()
-    json = []
-    out = []
-
-    for f in features:
-        json.append({"id": f.id, "feature": f.feature, "device_id": f.device_id})
-
-    for o in json:
-        if ";" in o["feature"]:
-            x = o["feature"].split(";")
-            o["feature"] = x[0]
-            o["number"] = x[1]
-            out.append(o)
-        else:
-            out.append(o)
-
-    return out
+# @app.get("/api/features")
+# async def get_all_features(authorize: AuthJWT = Depends()):
+#     """
+#     /features - GET - get all available features
+#     """
+#     authorize.jwt_required()
+#
+#     features = db.get_features()
+#     json = []
+#     out = []
+#
+#     for f in features:
+#         json.append({"id": f.id, "feature": f.feature, "device_id": f.device_id})
+#
+#     for o in json:
+#         if ";" in o["feature"]:
+#             x = o["feature"].split(";")
+#             o["feature"] = x[0]
+#             o["number"] = x[1]
+#             out.append(o)
+#         else:
+#             out.append(o)
+#
+#     return out
 
 
 # --- Category --- #
-# ------------------- REBUILD ----------------------
-
-@app.get("/api/categories")
+@app.get("/api/categories") # TODO: rewrite
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories
@@ -510,7 +499,7 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     return db.get_categories()
 
 
-@app.post("/api/categories")
+@app.post("/api/categories") # TODO: rewrite
 async def add_categories(request: Request, authorize: AuthJWT = Depends()):
     """
     /categories - POST - add a new Category to the DB
@@ -530,9 +519,7 @@ async def add_categories(request: Request, authorize: AuthJWT = Depends()):
 
 
 # --- Alerts --- #
-
-# ------------------- REBUILD ----------------------
-@app.get("/api/alerts")
+@app.get("/api/alerts") # TODO: rewrite
 async def get_all_alerts(
         minSeverity: Optional[int] = 0,
         severity: Optional[str] = None,
@@ -561,8 +548,7 @@ async def get_all_alerts(
     return out
 
 
-# ------------------- REBUILD ----------------------
-@app.get("/api/alerts/{aid}")
+@app.get("/api/alerts/{aid}") # TODO: rewrite
 async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
     """
     /alerts/{aid} - GET - get specific alert by id
@@ -573,10 +559,7 @@ async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
 
 
 # --- Modules --- #
-
-# ------------------- DISCARD ----------------------
-# ------------------- REBUILD ----------------------
-@app.get("/api/modules")
+@app.get("/api/modules") # TODO: rewrite
 async def get_all_modules(authorize: AuthJWT = Depends()):
     """
     /modules - GET - get all modules
@@ -587,10 +570,7 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 
 
 # --- Redis --- #
-
-
-# ------------------- REBUILD ----------------------
-@app.post("/api/redis")
+@app.post("/api/redis") # TODO: rewrite @Tobi
 # async def redis(request: Request):
 async def redis(request: Request, authorize: AuthJWT = Depends()):
     """
@@ -617,7 +597,6 @@ async def redis(request: Request, authorize: AuthJWT = Depends()):
 
 
 # --- Exception Handling --- #
-
 @app.exception_handler(AuthJWTException)
 def authjwt_exception_handler(request: Request, exc: AuthJWTException):
     return JSONResponse(
