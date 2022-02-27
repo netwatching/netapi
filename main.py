@@ -21,7 +21,6 @@ if __name__ == "__main__":
     cfg.keyfile = "./ssl/palguin.htl-vil.local+3-key.pem"
     cfg.certfile = "./ssl/palguin.htl-vil.local+3.pem"
     cfg.worker_class = 'asyncio'
-    cfg.workers = 5
     cfg.accesslog = "-"
     cfg.loglevel = "DEBUG"
 

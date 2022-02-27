@@ -2,20 +2,25 @@ import os
 import sys
 
 import mysql
+import json
 import sqlalchemy.exc
+import inspect
+import re
+from fastapi.routing import APIRoute
 import uvicorn as uvicorn
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
-from src.models.models import oldDevice, User, Settings
+from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
 import datetime
 from fastapi_route_logger_middleware import RouteLoggerMiddleware
-from mongoDBIO import MongoDBIO
+import pymongo.errors
 
 from src.dbio import DBIO
 from src.mongoDBIO import MongoDBIO
@@ -36,7 +41,8 @@ except mysql.connector.errors.DatabaseError:
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
-mongo = MongoDBIO(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
+mongo = MongoDBIO(
+    details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
 
 origins = [
     "http://localhost:4200",
@@ -53,23 +59,69 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def schema():
-   openapi_schema = get_openapi(
-       title="NetAPI",
-       version="1.0",
-       routes=app.routes,
-   )
-   openapi_schema["info"] = {
-       "title" : "NetAPI",
-       "version" : "1.0",
-       "description" : "API for the NetWatch project",
-   }
-   app.openapi_schema = openapi_schema
 
-   return app.openapi_schema
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="OrderService",
+        version="DEV",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+
+    cookie_security_schemes = {
+        "AccessToken": {
+            "type": "http",
+            "scheme": "bearer",
+            "in": "header",
+            "name": "Authorization"
+        },
+        "RefreshToken": {
+            "type": "http",
+            "scheme": "bearer",
+            "in": "header",
+            "name": "Authorization"
+        }
+    }
+
+    if "components" in openapi_schema:
+        openapi_schema["components"].update({"securitySchemes": cookie_security_schemes})
+    else:
+        openapi_schema["components"] = {"securitySchemes": cookie_security_schemes}
+
+    api_router = [route for route in app.routes if isinstance(route, APIRoute)]
+
+    for route in api_router:
+        path = getattr(route, "path")
+        endpoint = getattr(route, "endpoint")
+        methods = [method.lower() for method in getattr(route, "methods")]
+
+        for method in methods:
+            # access_token
+            if (
+                    re.search("jwt_required", inspect.getsource(endpoint)) or
+                    re.search("fresh_jwt_required", inspect.getsource(endpoint)) or
+                    re.search("jwt_optional", inspect.getsource(endpoint))
+            ):
+                openapi_schema["paths"][path][method].update({
+                    'security': [{"AccessToken": []}]
+                })
+
+            # refresh_token
+            if re.search("jwt_refresh_token_required", inspect.getsource(endpoint)):
+                openapi_schema["paths"][path][method].update({
+                    'security': [{"RefreshToken": []}]
+                })
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
 
 
-app.openapi = schema
+app.openapi = custom_openapi
+
 
 @AuthJWT.load_config
 def get_config():
@@ -87,32 +139,29 @@ async def test() -> dict:
 # --- AUTHENTICATION--- #
 
 @app.post('/api/login')
-async def login(req: Request, authorize: AuthJWT = Depends()):
+async def login(req: ServiceLogin, authorize: AuthJWT = Depends()):
     """
     /login - POST - authenticates frontend User and returns JWT
     """
-    json_body = await req.json()
     try:
-        pw = json_body['pw']
-        uid = json_body['id']
-        name = json_body['name']
+        pw = req.password
+        uid = req.id
+        name = req.name
     except KeyError:
         raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     if pw != config("pw"):
         raise HTTPException(status_code=401, detail="Unauthorized")
     else:
-        expires = datetime.timedelta(days=1)
+        expires = datetime.timedelta(minutes=10)
         access_token = authorize.create_access_token(
             subject=uid,
             headers={"name": name},
             expires_time=expires
         )
-        refresh_token = authorize.create_refresh_token(subject=uid, expires_time=False)
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token
-        }
+        expires = datetime.timedelta(minutes=20)
+        refresh_token = authorize.create_refresh_token(subject=uid, expires_time=expires)
+        return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
 
 
 @app.post('/api/refresh')
@@ -123,93 +172,78 @@ async def refresh(authorize: AuthJWT = Depends()):
     authorize.jwt_refresh_token_required()
 
     current_user = authorize.get_jwt_subject()
-    new_access_token = authorize.create_access_token(subject=current_user)
-    return {"access_token": new_access_token}
+    expires = datetime.timedelta(minutes=10)
+    access_token = authorize.create_access_token(
+        subject=current_user,
+        # headers={"name": name},
+        expires_time=expires
+    )
+    expires = datetime.timedelta(minutes=20)
+    refresh_token = authorize.create_refresh_token(subject=current_user, expires_time=expires)
+    return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
 
 
 @app.post("/api/aggregator-login")
-async def aggregator_login(request: Request, authorize: AuthJWT = Depends()):
+async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT = Depends()):
     """
     /aggregator-login - POST - aggregator login with token
     """
-    json_body = await request.json()
     try:
-        token = json_body['token']
+        token = request.token
     except KeyError:
         raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     exists = db.check_token(token)
 
     if exists:
-        aggregator_id = exists.id
-        access_token = authorize.create_access_token(subject=aggregator_id)
-        refresh_token = authorize.create_refresh_token(subject=aggregator_id)
-        return {"token": access_token, "refresh_token": refresh_token, "aggregator_id": aggregator_id}
+        aggregator_id = exists.pk
+        expires = datetime.timedelta(minutes=10)
+        access_token = authorize.create_access_token(subject=aggregator_id, expires_time=expires)
+        expires = datetime.timedelta(minutes=20)
+        refresh_token = authorize.create_refresh_token(subject=aggregator_id, expires_time=expires)
+        return ServiceAggregatorLoginOut(
+            aggregator_id=aggregator_id,
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 # --- AGGREGATOR --- #
-# ------------------- REBUILD ----------------------
-@app.post("/api/aggregator")
-async def add_aggregator(request: Request, authorize: AuthJWT = Depends()):
+@app.post("/api/aggregator", status_code=201, response_model=AddAggregatorOut)
+async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends()):
     """
         /aggregator - POST - webinterface can add a new token for a new aggregator
         """
     authorize.jwt_required()
 
-    json_body = await request.json()
     try:
-        token = json_body['token']
+        token = request.token
     except KeyError:
         raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     try:
-        db.add_aggregator(token)
-    except sqlalchemy.exc.IntegrityError:
+        mongo.add_aggregator(token)
+    except pymongo.errors.DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Already exists")
 
-    return JSONResponse(
-        status_code=201,
-        content={"detail": "Created"}
-    )
+    return JSONResponse(status_code=201, content={"detail": "Created"})
+
 
 @app.get("/api/aggregator/{id}")
-async def get_aggregator_by_id(id: int, authorize: AuthJWT = Depends()):
+async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
     """
     authorize.jwt_required()
-    out = []
-    if id > 0:
-        d = oldDevice(id=1, name=f'Zabbi', ip=f'zabbix.htl-vil.local', type='Zabbi', aggregator_id=id, timeout=10,
-                      module_name=['problems', 'events'])
-        out.append(d.serialize())
-        d = oldDevice(id=2, name=f'UbiSW1', ip=f'172.31.37.95', type='Ubiquiti', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=3, name=f'Cisco1', ip=f'172.31.8.81', type='Cisco', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=4, name=f'UbiSW2', ip=f'172.31.37.89', type='Ubiquiti', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=5, name=f'UbiSW3', ip=f'172.31.37.70', type='Ubiquiti', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=6, name=f'UbiAP1', ip=f'172.31.37.78', type='Ubiquiti', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=7, name=f'UbiAP2', ip=f'172.31.37.46', type='Ubiquiti', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-        d = oldDevice(id=8, name=f'UbiAP3', ip=f'172.31.37.44', type='Ubiquiti', aggregator_id=id, timeout=10,
-                      module_name=['snmp'])
-        out.append(d.serialize())
-    return out
 
-    # if id > 0:
-    #     return db.get_aggregator_devices(id)
-    # raise HTTPException(status_code=400, detail="Bad Parameter")
+    if id == "":
+        raise HTTPException(status_code=400, detail=BAD_PARAM)
+
+    db = mongo.get_aggregator_devices(id)
+    json_string = json.dumps(db)
+    return json_string
+
 
 # ------------------- REBUILD ----------------------
 @app.post("/api/aggregator/{id}/version")
@@ -327,7 +361,6 @@ async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
         out["interfaces"] = ifs
         out["ipAddresses"] = ips
 
-
     return out
 
 
@@ -357,9 +390,11 @@ async def devices_data(request: Request, authorize: AuthJWT = Depends()):
                 for key in values:
                     value = values[key]
                     if isinstance(value, str):
-                        db.add_value_string(cursor=cursor, device_id=device_id, feature_name=feature, key=key, value=value)
+                        db.add_value_string(cursor=cursor, device_id=device_id, feature_name=feature, key=key,
+                                            value=value)
                     else:
-                        db.add_value_numeric(cursor=cursor, device_id=device_id, feature_name=feature, key=key, value=value)
+                        db.add_value_numeric(cursor=cursor, device_id=device_id, feature_name=feature, key=key,
+                                             value=value)
         for event_host in events:
             event_values = events[event_host]
             for event in event_values:
@@ -556,7 +591,7 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 
 # ------------------- REBUILD ----------------------
 @app.post("/api/redis")
-#async def redis(request: Request):
+# async def redis(request: Request):
 async def redis(request: Request, authorize: AuthJWT = Depends()):
     """
     /redis - POST - aggregator sends all live-data variables

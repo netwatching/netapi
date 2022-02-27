@@ -39,3 +39,29 @@ class MongoDBIO:
             return device
         except Exception as e:
             print(e)
+
+    def check_token(self, token: str):
+        try:
+            ag = Aggregator.objects.get({'token': token})
+            return ag
+        except Aggregator.DoesNotExist:
+            return False
+        except Aggregator.MultipleObjectsReturned:
+            return -1
+
+    def add_aggregator(self, token: str):
+        try:
+            ag = Aggregator(token=token).save()
+            return ag
+        except Exception as e:
+            print(e)
+
+# https://stackoverflow.com/questions/46366398/how-to-convert-pymodm-objects-to-json
+    def get_aggregator_devices(self, id: str):
+        try:
+            ag = Aggregator.objects.get({'_id': id})
+            return ag.devices.to_son().to_dict()
+        except Aggregator.DoesNotExist:
+            return
+        except Aggregator.MultipleObjectsReturned:
+            return

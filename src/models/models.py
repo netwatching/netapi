@@ -22,6 +22,36 @@ class Settings(BaseModel):
     authjwt_secret_key: str = "secret"
 
 
+class ServiceLoginOut(BaseModel):
+    access_token: str
+    refresh_token: str
+
+
+class ServiceAggregatorLoginOut(BaseModel):
+    aggregator_id: str
+    access_token: str
+    refresh_token: str
+
+
+class ServiceLogin(BaseModel):
+    password: str = "password"
+    id: int = 1
+    name: str = "Hons"
+
+
+class ServiceAggregatorLogin(BaseModel):
+    token: str = "token"
+
+
+class AddAggregatorIn(BaseModel):
+    token: str = "token"
+
+
+class AddAggregatorOut(BaseModel):
+    detail: str = "Created"
+
+# --- Old Models for old DB --- #
+
 class oldDevice(BaseModel):  # old device model, should be deleted
     id: Optional[str] = None
     name: str
