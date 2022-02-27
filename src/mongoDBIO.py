@@ -16,8 +16,6 @@ class MongoDBIO:
         self.details = details
         connection.connect(details)
 
-
-
     def get_modules(self):
         try:
             modules = list(Module.objects.order_by([['type', DESCENDING]]).all())
@@ -41,9 +39,3 @@ class MongoDBIO:
             return device
         except Exception as e:
             print(e)
-
-
-mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
-
-
-

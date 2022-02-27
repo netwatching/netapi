@@ -36,7 +36,7 @@ except mysql.connector.errors.DatabaseError:
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
-mongo = MongoDBIO()
+mongo = MongoDBIO(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
 
 origins = [
     "http://localhost:4200",
