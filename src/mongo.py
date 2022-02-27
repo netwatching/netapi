@@ -79,7 +79,9 @@ class Mongo:
             print(e)
 
 
-mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
+#mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
+
+mongo = Mongo(details="mongodb://netwatch:SjvFQX29qqV9LHx56WzBRutz5h44UjaSgF4rap6rYwPhKtsR4GzqUL83yjpCZex4hpabFdKewxyDPPSPS6SLpd7sCeKSTj5PWXfQ8M859uzqBtmAvcpUNn7hy94kP3rG@130.61.127.156:27017/netdb?authSource=admin")
 #mongo.test()
 
 # modules = mongo.get_modules()
