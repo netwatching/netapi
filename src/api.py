@@ -15,9 +15,10 @@ from decouple import config
 from typing import Optional
 import datetime
 from fastapi_route_logger_middleware import RouteLoggerMiddleware
+from mongoDBIO import MongoDBIO
 
 from src.dbio import DBIO
-from src.mongo import Mongo
+from src.mongoDBIO import MongoDBIO
 
 # only for test
 from random import randint
@@ -35,8 +36,7 @@ except mysql.connector.errors.DatabaseError:
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
-mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb")
-
+mongo = MongoDBIO()
 
 origins = [
     "http://localhost:4200",
