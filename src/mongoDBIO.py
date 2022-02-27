@@ -8,6 +8,7 @@ from src.models.module import Type, Module
 from src.models.device import Device, Category
 
 
+# noinspection PyMethodMayBeStatic
 class MongoDBIO:
     def __init__(self, details):
         self.details = details
@@ -23,7 +24,6 @@ class MongoDBIO:
             return category
         except Category.DuplicateKeyError:
             return False
-
 
     def add_device(self, hostname: str, category: Category, ip: str = None):
         try:
@@ -69,4 +69,3 @@ class MongoDBIO:
             return False
         except Device.MultipleObjectsReturned:
             return -1
-
