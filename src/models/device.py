@@ -23,6 +23,5 @@ class Device(MongoModel):
 
     class Meta:
         indexes = [
-            IndexModel([('hostname', DESCENDING)], unique=True),
-            IndexModel([('category', DESCENDING)])
+            IndexModel([('hostname', DESCENDING)], unique=True)
         ]

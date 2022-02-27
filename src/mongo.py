@@ -82,13 +82,14 @@ class Mongo:
 mongo = Mongo(details="mongodb://netwatch:jfMCDp9dzZrTxytB6zSrtEjkqXcrmvPKrnXttTFj383u8UFmN3AqY9XdPw7H@palguin.htl-vil.local:27017/netdb?authSource=admin")
 mongo.test()
 
-modules = mongo.get_modules()
-print(modules)
+# modules = mongo.get_modules()
+# print(modules)
+#
+# time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#
+# category = mongo.add_category(category=f'test.{time}')
+# print(category.pk)
+#
+# device = mongo.add_device(hostname=f'test.{time}', category=category, ip='192.126.12.1')
+# print(device.pk)
 
-time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-category = mongo.add_category(category=f'test.{time}')
-print(category.pk)
-
-device = mongo.add_device(hostname=f'test.{time}', category=category, ip='192.126.12.1')
-print(device.pk)
