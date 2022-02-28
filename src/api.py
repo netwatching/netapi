@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus,  DeviceById
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -47,7 +47,8 @@ except mysql.connector.errors.DatabaseError:
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
 
-mongo = MongoDBIO(details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
+mongo = MongoDBIO(
+    details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
 
 origins = [
     "http://localhost:4200",
@@ -115,7 +116,6 @@ def custom_openapi():
                     'security': [{"AccessToken": []}]
                 })
 
-
             if re.search("jwt_refresh_token_required", inspect.getsource(endpoint)):
                 openapi_schema["paths"][path][method].update({
                     'security': [{"RefreshToken": []}]
@@ -140,7 +140,6 @@ async def root() -> APIStatus:
     time_delta = datetime.datetime.now() - start_time
     output_time = humanize.naturaldelta(time_delta)
     return APIStatus(version=version, uptime=output_time)
-
 
 
 # --- AUTHENTICATION--- #
@@ -237,7 +236,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     return JSONResponse(status_code=201, content={"detail": "Created"})
 
 
-@app.get("/api/aggregator/{id}") # TODO: rewrite
+@app.get("/api/aggregator/{id}")  # TODO: rewrite
 async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -252,7 +251,7 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     return json_string
 
 
-@app.post("/api/aggregator/{id}/version") # TODO: rewrite
+@app.post("/api/aggregator/{id}/version")  # TODO: rewrite
 async def get_aggregator_version_by_id(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/version - POST - set version of the aggregator
@@ -270,7 +269,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/aggregator/{id}/modules") # TODO: rewrite
+@app.post("/api/aggregator/{id}/modules")  # TODO: rewrite
 async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
@@ -289,31 +288,23 @@ async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Dep
 
 
 # --- DEVICES --- #
-@app.get("/api/devices") # TODO: rewrite
-async def get_all_devices(
-        category: Optional[str] = None,
-        page: Optional[int] = None,
-        amount: Optional[int] = None,
-        authorize: AuthJWT = Depends()):
+@app.get("/api/devices")
+async def get_all_devices(request: GetAllDevices, authorize: AuthJWT = Depends()):
     """
     /devices - GET - get all devices in a base version for the frontend
     """
+
     authorize.jwt_required()
 
-    out = {}
+    category = request.category
+    page = request.page
+    amount = request.amount
 
-    out["page"] = page
-    out["amount"] = amount
+    devices = mongo.get_device_by_category(category=category, page=page, amount=amount)
+    if devices == -1 or devices is False:
+        raise HTTPException(status_code=400, detail="Error occurred")
 
-    if category:
-        cats = category.split('_')
-        data = db.get_devices_by_categories(cats, page, amount)
-    else:
-        data = db.get_devices(page, amount)
-
-    out["total"] = data[1]
-    out["devices"] = data[0]
-    return out
+    return JSONResponse(status_code=200, content=json.dumps(devices))
 
 
 @app.get("/api/devices/{id}")  # TODO: rewrite

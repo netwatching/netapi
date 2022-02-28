@@ -58,11 +58,17 @@ class AddAggregatorOut(BaseModel):
 
 
 class DeviceById(BaseModel):
-    id: str = Field(..., default="621bcca84763b786518e2a4f")
+    id: str = "621bcca84763b786518e2a4f"
 
 
 class GetDevicesByAggregator(BaseModel):
-    id: str = Field(..., default="621bcca84763b786518e2a4f")
+    id: str = "621bcca84763b786518e2a4f"
+
+
+class GetAllDevices(BaseModel):
+    category: Optional[str] = "Testing"
+    page: Optional[int] = "5"
+    amount: Optional[int] = "20"
 
 # --- Old Models for old DB --- #
 
