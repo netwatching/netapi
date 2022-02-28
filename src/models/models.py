@@ -60,6 +60,10 @@ class AddAggregatorOut(BaseModel):
 class DeviceById(BaseModel):
     id: str = Field(..., default="621bcca84763b786518e2a4f")
 
+
+class GetDevicesByAggregator(BaseModel):
+    id: str = Field(..., default="621bcca84763b786518e2a4f")
+
 # --- Old Models for old DB --- #
 
 class oldDevice(BaseModel):  # old device model, should be deleted

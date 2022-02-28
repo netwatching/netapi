@@ -1,6 +1,6 @@
 from pymongo import IndexModel, DESCENDING
 
-from pymodm import MongoModel, fields, GenericIPAddressField, ReferenceField
+from pymodm import MongoModel, fields, ReferenceField
 from src.models.module import Module
 
 
@@ -13,12 +13,17 @@ class Category(MongoModel):
         ]
 
 
+class Data(MongoModel):
+    key = fields.CharField(required=True)
+    data = fields.DictField(required=True)
+
+
 class Device(MongoModel):
     hostname = fields.CharField(required=True)
-    ip = fields.GenericIPAddressField(required=False, protocol=GenericIPAddressField.IPV4)
+    ip = fields.CharField(required=False)
     category = fields.ReferenceField(Category, required=True, on_delete=ReferenceField.CASCADE)
-    static = fields.ListField(fields.CharField())
-    live = fields.ListField(fields.CharField())
+    static = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.CASCADE))
+    live = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.CASCADE))
     modules = fields.ListField(fields.ReferenceField(Module, on_delete=ReferenceField.CASCADE), required=False)
 
     class Meta:
