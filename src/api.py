@@ -1,7 +1,6 @@
 import os
 import sys
 
-import mysql
 import json
 import sqlalchemy.exc
 import inspect
@@ -36,11 +35,11 @@ start_time = datetime.datetime.now()
 version = git.Repo(search_parent_directories=True).git.describe("--abbrev", "--always")
 
 app = FastAPI()
-try:
-    db = DBIO(
-        db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
-except mysql.connector.errors.DatabaseError:
-    sys.exit("No Database Connection...\nexiting...")
+#try:
+#    db = DBIO(
+#        db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
+#except mysql.connector.errors.DatabaseError:
+#    sys.exit("No Database Connection...\nexiting...")
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -284,7 +283,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
         except KeyError:
             raise HTTPException(status_code=400, detail=BAD_PARAM)
 
-        db.set_aggregator_version(id, ver)
+        #db.set_aggregator_version(id, ver)
         return {"detail": "updated"}
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 

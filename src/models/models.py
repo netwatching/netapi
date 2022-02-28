@@ -91,7 +91,7 @@ class AggregatorByID(BaseModel):
 
 
 class GetDevicesByAggregator(BaseModel):
-    id: str = Field(..., default="621bcca84763b786518e2a4f")
+    id: str = "621bcca84763b786518e2a4f"
 
 # --- Old Models for old DB --- #
 

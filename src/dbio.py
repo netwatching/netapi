@@ -14,9 +14,6 @@ from src.models.models import Category, Device, Feature, Value_Numeric, Value_St
 from sqlalchemy.dialects.mysql import insert
 from src.crypt import Crypt
 
-import mysql.connector
-from mysql.connector import Error
-
 
 class DBIO:
     def __init__(self, db_path: str):
@@ -25,15 +22,11 @@ class DBIO:
             self.db_path = db_path
             self.engine = sql.create_engine(self.db_path)
             self.session = sessionmaker(bind=self.engine)
-            self.connection = mysql.connector.connect(host=config("DBurl"),
-                                                      database=config("DBdatabase"),
-                                                      user=config("DBuser"),
-                                                      password=config("DBpassword"),
-                                                      auth_plugin='mysql_native_password')
-            self.redis_indices = ["in_bytes", "in_unicast_packets", "in_non_unicast_packets",
-                                  "in_discards", "in_errors", "in_unknown_protocols",
-                                  "out_bytes", "out_unicast_packets", "out_non_unicast_packets",
-                                  "out_discards", "out_errors"]
+            #self.connection = mysql.connector.connect(host=config("DBurl"),
+            #                                          database=config("DBdatabase"),
+            #                                          user=config("DBuser"),
+            #                                          password=config("DBpassword"),
+            #                                          auth_plugin='mysql_native_password')
 
     def add_value_numeric(self, cursor, device_id: int, feature_name: str, key: str, value):
         args = (device_id, feature_name, key, value)
@@ -358,65 +351,3 @@ class DBIO:
             session.commit()
             session.close()
 
-
-    def redis_insert_live_data(self, data):
-        hostname = data["device"]
-
-        for interface_index in data["data"]:
-            database_index = self.redis_indices.index(interface_index)
-
-            if database_index != -1:
-                self.redis_insert(hostname, data["data"][interface_index], database_index)
-
-    def redis_insert(self, hostname: str, values: list, database_index: int):
-        pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
-                                    password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
-                                    username="default",
-                                    db=database_index)
-        r = redis.Redis(connection_pool=pool)
-        r.zadd(hostname, values)
-        pool.connection_class()
-
-    async def thread_insertIntoDatabase(self):
-        while True:
-            await asyncio.sleep(30 * 60)
-            # Run all 30 minutes
-
-            for i in range(0, len(self.redis_indices)):
-                pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
-                                            password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
-                                            username="default",
-                                            db=i)
-                r = redis.Redis(connection_pool=pool)
-
-                for key in r.scan_iter():
-                    key = str(key, "utf-8")
-                    # Get all live-data entries currently stored
-                    scores = r.zrange(key, 0, -1, withscores=True)
-                    # Delete all entries of current database so already created events which have occurred in this set are
-                    # not inserted again. This also increases performance
-                    r.flushdb()
-
-                    with self.session.begin() as session:
-                        device_id = session.query(func.netdb.insDevByCat(key, 3)).all()
-
-                        device_id = device_id[0][0]
-                        feature = self.redis_indices[i]
-                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                        avg_score = 0
-                        for score in scores:
-                            avg_score += score[1]
-                            # This values will be changed in the future since currently we can not differentiate between
-                            # normal values and anomalies. Furthermore, it is extremely likely that some values
-                            # might get their own threshold values since every value is differently important. If this is
-                            # the case, the alert-message and severity will be changed accordingly too.
-                            if score[1] >= 1000000:
-                                query = f"Call insAleWithTimestampAndSeverityAndProblemByDevHostnameOrIp(" \
-                                        f"\"{timestamp}\", 3, \"A high level of {feature} has been detected\", \"{key}\", \"null\");"
-                                session.execute(query)
-                        if len(scores) > 0:
-                            avg_score /= len(scores)
-
-                        query = f"Call insValnByFeaNameAndDev({device_id}, \"{feature}\", \"{timestamp}\", {avg_score})"
-                        session.execute(query)
