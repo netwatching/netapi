@@ -263,9 +263,8 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
 
     id = ObjectId(id)
 
-    db_result = mongo.get_aggregator_devices(id).to_son().to_dict()
-    json_string = json.dumps(db_result)
-    return json_string
+    db_result = mongo.get_aggregator_devices(id)
+    return db_result
 
 
 @app.post("/api/aggregator/{id}/version")  # TODO: rewrite
