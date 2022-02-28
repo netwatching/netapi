@@ -24,6 +24,7 @@ python-decouple==3.5
 python-dotenv==0.19.1
 PyYAML==6.0
 sniffio==1.2.0
+mysqlclient==2.1.0
 
 SQLAlchemy==1.4.27
 sqlalchemy-repr==0.0.2

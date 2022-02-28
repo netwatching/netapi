@@ -27,6 +27,28 @@ class Settings(BaseModel):
     authjwt_secret_key: str = config("secret")
 
 
+class Category(BaseModel):
+    category: str = "Drucka"
+
+
+class Type(BaseModel):
+    type: str = "SoSoHo"
+    config: str = "JSON Static Config"
+
+
+class Module(BaseModel):
+    config: str = "JSON Static Config Override"
+    type: list[Type]
+
+
+class Device(BaseModel):
+    hostname: str = "device.local"
+    ip: str = "1.2.3.4"
+    category: list[Category]
+    static: str = "JSON Static Data"
+    live: str = "JSON Live Data"
+    modules: list[Module]
+
 
 class ServiceLoginOut(BaseModel):
     access_token: str
@@ -40,7 +62,7 @@ class ServiceAggregatorLoginOut(BaseModel):
 
 
 class ServiceLogin(BaseModel):
-    password: str = "password"
+    password: str = "TYlZfng0wwuEOaxcyyoJ2N5otTPS0g4X6fXq9s777yJxwtcpHsRQC1F5Ao5PI3MT42xlMeBOP4jN7fUAA5a5vEtM7WWIMYvQPDebr5Lcgz9Ri1yEQiwmObINIHyI8pMw"
     id: int = 1
     name: str = "Hons"
 
@@ -58,7 +80,14 @@ class AddAggregatorOut(BaseModel):
 
 
 class DeviceById(BaseModel):
-    id: str = Field(..., default="621bcca84763b786518e2a4f")
+    id: str ="621bcca84763b786518e2a4f"
+
+
+class AggregatorByID(BaseModel):
+    token: str = "vCWgzSmypvIa2payLr3Ykbf07ZVfCuw9"
+    version: str = "0.0.0.0"
+    ip: str = "1.2.3.4"
+    devices: list[Device]
 
 
 class GetDevicesByAggregator(BaseModel):

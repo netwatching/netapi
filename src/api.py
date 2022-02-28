@@ -7,22 +7,21 @@ import sqlalchemy.exc
 import inspect
 import re
 from fastapi.routing import APIRoute
-import uvicorn as uvicorn
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
-from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus,  DeviceById
+from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus,  DeviceById, AggregatorByID
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
 import datetime
 import humanize
 import git
-from fastapi_route_logger_middleware import RouteLoggerMiddleware
 import pymongo.errors
+from bson import ObjectId
 
 from src.dbio import DBIO
 from src.mongoDBIO import MongoDBIO
@@ -145,7 +144,7 @@ async def root() -> APIStatus:
 
 # --- AUTHENTICATION--- #
 
-@app.post('/api/login')
+@app.post('/api/login', response_model=ServiceLoginOut)
 async def login(req: ServiceLogin, authorize: AuthJWT = Depends()):
     """
     /login - POST - authenticates frontend User and returns JWT
@@ -167,30 +166,31 @@ async def login(req: ServiceLogin, authorize: AuthJWT = Depends()):
             expires_time=expires
         )
         expires = datetime.timedelta(minutes=20)
-        refresh_token = authorize.create_refresh_token(subject=uid, expires_time=expires)
+        refresh_token = authorize.create_refresh_token(subject=uid, headers={"name": name}, expires_time=expires)
         return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
 
 
-@app.post('/api/refresh')
+@app.post('/api/refresh', response_model=ServiceLoginOut)
 async def refresh(authorize: AuthJWT = Depends()):
     """
     /refresh - POST - renew expired access token
     """
     authorize.jwt_refresh_token_required()
+    name = authorize.get_unverified_jwt_headers()["name"]
 
     current_user = authorize.get_jwt_subject()
     expires = datetime.timedelta(minutes=10)
     access_token = authorize.create_access_token(
         subject=current_user,
-        # headers={"name": name},
+        headers={"name": name},
         expires_time=expires
     )
     expires = datetime.timedelta(minutes=20)
-    refresh_token = authorize.create_refresh_token(subject=current_user, expires_time=expires)
+    refresh_token = authorize.create_refresh_token(subject=current_user, headers={"name": name}, expires_time=expires)
     return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
 
 
-@app.post("/api/aggregator-login")
+@app.post("/api/aggregator-login", response_model=ServiceAggregatorLoginOut)
 async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT = Depends()):
     """
     /aggregator-login - POST - aggregator login with token
@@ -200,13 +200,14 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
     except KeyError:
         raise HTTPException(status_code=400, detail=BAD_PARAM)
 
-    exists = db.check_token(token)
+    exists = mongo.check_token(token)
 
     if exists:
-        aggregator_id = exists.pk
+        aggregator_id = str(exists.pk)
+
         expires = datetime.timedelta(minutes=10)
         access_token = authorize.create_access_token(subject=aggregator_id, expires_time=expires)
-        expires = datetime.timedelta(minutes=20)
+        expires = datetime.timedelta(hours=1)
         refresh_token = authorize.create_refresh_token(subject=aggregator_id, expires_time=expires)
         return ServiceAggregatorLoginOut(
             aggregator_id=aggregator_id,
@@ -215,13 +216,29 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
         )
     raise HTTPException(status_code=401, detail="Unauthorized")
 
+@app.post("/api/aggregator-refresh", response_model=ServiceLoginOut)
+async def aggregator_login(authorize: AuthJWT = Depends()):
+    """
+    /aggregator-login - POST - aggregator login with token
+    """
+    authorize.jwt_refresh_token_required()
+
+    current_user = authorize.get_jwt_subject()
+    expires = datetime.timedelta(minutes=10)
+    access_token = authorize.create_access_token(
+        subject=current_user,
+        expires_time=expires
+    )
+    expires = datetime.timedelta(hours=1)
+    refresh_token = authorize.create_refresh_token(subject=current_user, expires_time=expires)
+    return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
 
 # --- AGGREGATOR --- #
 @app.post("/api/aggregator", status_code=201, response_model=AddAggregatorOut)
 async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends()):
     """
-        /aggregator - POST - webinterface can add a new token for a new aggregator
-        """
+    /aggregator - POST - webinterface can add a new token for a new aggregator
+    """
     authorize.jwt_required()
 
     try:
@@ -237,7 +254,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     return JSONResponse(status_code=201, content={"detail": "Created"})
 
 
-@app.get("/api/aggregator/{id}") # TODO: rewrite
+@app.get("/api/aggregator/{id}", response_model=AggregatorByID) # TODO: rewrite
 async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -246,6 +263,8 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
 
     if id == "":
         raise HTTPException(status_code=400, detail=BAD_PARAM)
+
+    id = ObjectId(id)
 
     db_result = mongo.get_aggregator_devices(id).to_son().to_dict()
     json_string = json.dumps(db_result)
@@ -326,42 +345,6 @@ async def device_by_id(request: DeviceById, authorize: AuthJWT = Depends()):
     device = mongo.get_device_by_id(DeviceById.id)
     return JSONResponse(status_code=200, content=json.dumps(device))
 
-
-# ------------------- DISCARD ----------------------
-# @app.get("/api/devices/{id}/features")
-# async def device_features_by_id(id: int, authorize: AuthJWT = Depends()):
-#     """
-#     /devices/{id} - GET - returns device features with id
-#     """
-#     authorize.jwt_required()
-#
-#     if id is not None:
-#         out = {}
-#         dic = {}
-#         ifs = []
-#         ips = []
-#         features = db.get_device_features_by_id(id)
-#
-#         for f in features:
-#             for val_s in f.value_strings:
-#                 if val_s is not None:
-#                     dic[val_s.key] = val_s.value
-#             for val_n in f.value_numerics:
-#                 if val_n is not None:
-#                     dic[val_n.key] = val_n.value
-#
-#             if "interfaces;" in f.feature:
-#                 ifs.append(dic)
-#             elif "ipAddresses;" in f.feature:
-#                 ips.append(dic)
-#             else:
-#                 out[f.feature] = dic
-#             dic = {}
-#
-#         out["interfaces"] = ifs
-#         out["ipAddresses"] = ips
-#
-#     return out
 
 @app.post("/api/devices/data")  # TODO: rewrite
 async def devices_data(request: Request, authorize: AuthJWT = Depends()):
@@ -463,34 +446,6 @@ async def add_device(request: Request, authorize: AuthJWT = Depends()):
         return {"status": "success"}
 
     raise HTTPException(status_code=400, detail=BAD_PARAM)
-
-
-# --- Features --- #
-# ------------------- DISCARD ----------------------
-# @app.get("/api/features")
-# async def get_all_features(authorize: AuthJWT = Depends()):
-#     """
-#     /features - GET - get all available features
-#     """
-#     authorize.jwt_required()
-#
-#     features = db.get_features()
-#     json = []
-#     out = []
-#
-#     for f in features:
-#         json.append({"id": f.id, "feature": f.feature, "device_id": f.device_id})
-#
-#     for o in json:
-#         if ";" in o["feature"]:
-#             x = o["feature"].split(";")
-#             o["feature"] = x[0]
-#             o["number"] = x[1]
-#             out.append(o)
-#         else:
-#             out.append(o)
-#
-#     return out
 
 
 # --- Category --- #

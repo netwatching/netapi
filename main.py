@@ -1,11 +1,5 @@
 
 import asyncio
-import threading
-from datetime import datetime
-
-import sqlalchemy
-from sqlalchemy.dialects.mysql import pymysql
-import pymongo
 
 from src.api import app, db
 from src.dbio import DBIO
