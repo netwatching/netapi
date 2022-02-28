@@ -10,12 +10,19 @@ from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
 from src.models.device import Device, Category
 
+import asyncio
+import datetime
+
 
 # noinspection PyMethodMayBeStatic
 class MongoDBIO:
     def __init__(self, details):
         self.details = details
         connection.connect(details)
+        self.redis_indices = ["in_bytes", "in_unicast_packets", "in_non_unicast_packets",
+                              "in_discards", "in_errors", "in_unknown_protocols",
+                              "out_bytes", "out_unicast_packets", "out_non_unicast_packets",
+                              "out_discards", "out_errors"]
 
     def get_modules(self):
         modules = list(Module.objects.order_by([['type', DESCENDING]]).all())
@@ -56,6 +63,7 @@ class MongoDBIO:
 
     # https://stackoverflow.com/questions/46366398/how-to-convert-pymodm-objects-to-json
     def get_aggregator_devices(self, id: str):
+        print(id)
         try:
             ag = Aggregator.objects.get({'_id': id})
             return ag.devices

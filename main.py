@@ -1,18 +1,12 @@
 
 import asyncio
-import threading
-from datetime import datetime
 
-import sqlalchemy
-from sqlalchemy.dialects.mysql import pymysql
-import pymongo
-
-from src.api import app, db
-from src.dbio import DBIO
+from src.api import app, mongo
+from src.mongoDBIO import MongoDBIO
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 async def main(config):
-    await asyncio.gather(serve(app, cfg), DBIO.thread_insertIntoDatabase(db))
+    await asyncio.gather(serve(app, cfg), MongoDBIO.thread_insertIntoDatabase(mongo))
 
 if __name__ == "__main__":
     cfg = Config()
