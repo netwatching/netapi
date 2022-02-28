@@ -280,7 +280,7 @@ async def get_aggregator_version_by_id(id: int, request: Request, authorize: Aut
         except KeyError:
             raise HTTPException(status_code=400, detail=BAD_PARAM)
 
-        #db.set_aggregator_version(id, ver)
+        db.set_aggregator_version(id, ver)
         return {"detail": "updated"}
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
