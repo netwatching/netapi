@@ -1,5 +1,6 @@
 import datetime
 
+import redis
 from decouple import config
 from fastapi import HTTPException
 from pymodm import connection
@@ -127,6 +128,70 @@ class MongoDBIO:
 
         out["devices"] = devices
         return out
+
+    # --- Redis --- #
+
+    def redis_insert_live_data(self, data):
+        hostname = data["device"]
+
+        for interface_index in data["data"]:
+            database_index = self.redis_indices.index(interface_index)
+
+            if database_index != -1:
+                self.redis_insert(hostname, data["data"][interface_index], database_index)
+
+    def redis_insert(self, hostname: str, values: list, database_index: int):
+        pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
+                                    password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
+                                    username="default",
+                                    db=database_index)
+        r = redis.Redis(connection_pool=pool)
+        r.zadd(hostname, values)
+        pool.connection_class()
+
+    async def thread_insertIntoDatabase(self):
+        while True:
+            await asyncio.sleep(30 * 60)
+            # Run all 30 minutes
+
+            for i in range(0, len(self.redis_indices)):
+                pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
+                                            password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
+                                            username="default",
+                                            db=i)
+                r = redis.Redis(connection_pool=pool)
+
+                for key in r.scan_iter():
+                    key = str(key, "utf-8")
+                    # Get all live-data entries currently stored
+                    scores = r.zrange(key, 0, -1, withscores=True)
+                    # Delete all entries of current database so already created events which have occurred in this set are
+                    # not inserted again. This also increases performance
+                    r.flushdb()
+
+                    with self.session.begin() as session:
+                        device_id = session.query(func.netdb.insDevByCat(key, 3)).all()
+
+                        device_id = device_id[0][0]
+                        feature = self.redis_indices[i]
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                        avg_score = 0
+                        for score in scores:
+                            avg_score += score[1]
+                            # This values will be changed in the future since currently we can not differentiate between
+                            # normal values and anomalies. Furthermore, it is extremely likely that some values
+                            # might get their own threshold values since every value is differently important. If this is
+                            # the case, the alert-message and severity will be changed accordingly too.
+                            if score[1] >= 1000000:
+                                query = f"Call insAleWithTimestampAndSeverityAndProblemByDevHostnameOrIp(" \
+                                        f"\"{timestamp}\", 3, \"A high level of {feature} has been detected\", \"{key}\", \"null\");"
+                                session.execute(query)
+                        if len(scores) > 0:
+                            avg_score /= len(scores)
+
+                        query = f"Call insValnByFeaNameAndDev({device_id}, \"{feature}\", \"{timestamp}\", {avg_score})"
+                        session.execute(query)
 
 
 timestamp = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
