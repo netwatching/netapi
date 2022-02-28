@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices, AggregatorByID
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
