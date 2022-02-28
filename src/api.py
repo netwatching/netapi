@@ -12,7 +12,8 @@ from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices, AggregatorByID
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices, AggregatorByID, \
+    AddDataForDevices
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -335,56 +336,12 @@ async def device_by_id(request: DeviceById, authorize: AuthJWT = Depends()):
 
 
 @app.post("/api/devices/data")  # TODO: rewrite
-async def devices_data(request: Request, authorize: AuthJWT = Depends()):
+async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends data which is saved in the Database
     """
-    global cursor
-    authorize.jwt_required()
-    try:
-        jsondata = await request.json()
-        cursor = db.connection.cursor()
-        try:
-            devices = jsondata['devices']
-            events = jsondata['external_events']
-        except KeyError:
-            raise HTTPException(status_code=400, detail=BAD_PARAM)
 
-        for item in devices:
-            device_id = item['id']
-            for sd in item['static_data']:
-                identifier = f";{sd['identifier']}" if sd['identifier'] is not None else ''
-                feature = f"{sd['key']}{identifier}"
-                values = sd['value']
-                for key in values:
-                    value = values[key]
-                    if isinstance(value, str):
-                        db.add_value_string(cursor=cursor, device_id=device_id, feature_name=feature, key=key,
-                                            value=value)
-                    else:
-                        db.add_value_numeric(cursor=cursor, device_id=device_id, feature_name=feature, key=key,
-                                             value=value)
-        for event_host in events:
-            event_values = events[event_host]
-            for event in event_values:
-                event_timestamp = datetime \
-                    .datetime \
-                    .fromtimestamp(int(event['timestamp'])) \
-                    .strftime("%Y-%m-%d %H:%M:%S")
-                event_severity = event['severity']
-                event_problem = event['data']
-                db.add_event(cursor=cursor,
-                             timestamp=event_timestamp,
-                             severity=event_severity,
-                             problem=event_problem,
-                             hostname=event_host)
-        db.connection.commit()
-        out = JSONResponse(status_code=200, content={"detail": "success"})
-    except BaseException as e:
-        print(e)
-        out = JSONResponse(status_code=200, content={"detail": "failed"})
-    cursor.close()
-    return out
+
 
 
 @app.get("/api/devices/{did}/alerts")  # TODO: rewrite

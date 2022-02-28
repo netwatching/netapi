@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import redis
 from decouple import config
@@ -9,7 +10,7 @@ from pymongo import DESCENDING
 from src.models.event import Event
 from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
-from src.models.device import Device, Category
+from src.models.device import Device, Category, Data
 
 import asyncio
 import datetime
@@ -36,12 +37,23 @@ class MongoDBIO:
         except Category.DuplicateKeyError:
             return False
 
+    def get_category_by_category(self, category: str):
+        try:
+            return Category.objects.get({"category": category})
+        except Category.DuplicateKeyError:
+            return False
+
     def add_device(self, hostname: str, category: Category, ip: str = None):
         try:
-            device = Device(
-                hostname=hostname,
-                ip=ip,
-                category=category).save()
+            if ip is not None:
+                device = Device(
+                    hostname=hostname,
+                    ip=ip,
+                    category=category).save()
+            else:
+                device = Device(
+                    hostname=hostname,
+                    category=category).save()
             return device
         except Device.DuplicateKeyError:
             return False
@@ -76,6 +88,15 @@ class MongoDBIO:
     def get_device_by_id(self, id: str):
         try:
             device = Device.objects.get({'_id': id})
+            return device
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
+    def get_device_by_hostname(self, hostname: str):
+        try:
+            device = Device.objects.get({'hostname': hostname})
             return device
         except Device.DoesNotExist:
             return False
@@ -128,6 +149,48 @@ class MongoDBIO:
 
         out["devices"] = devices
         return out
+    
+    def add_data_for_devices(self, data: str):
+        try:
+            data = json.loads(data)
+        except ValueError:
+            return False
+
+        category = self.get_category_by_category("New")
+        
+        for device in data["devices"]:
+            dev = self.get_device_by_hostname(hostname=device["name"])
+            if dev is None or (isinstance(dev, int) and dev == -1):
+                return -1
+                    
+            if isinstance(dev, bool) and dev is False:
+                ip = None
+                if "ip" in device:
+                    ip = device["ip"]
+
+                dev = self.add_device(hostname=device["name"], category=category, ip=ip)
+            else:
+                return False
+            
+            static_data = device["static_data"]
+            for static_key in static_data:
+                self.__handle_static_data__(device=dev, key=static_key, input=static_data)
+                
+    def __handle_static_data__(self, device: Device, key, input):
+        for data in device.static:
+            if data.key == key:
+                data.data = input[key]
+                data.save()
+                return 
+
+        data = Data(key=key, data=input[key]).save()
+        data_list = device.static
+        data_list.append(data)
+        device.static = data_list
+        device.save()
+        
+            
+                
 
     # --- Redis --- #
 
@@ -201,13 +264,16 @@ mongo = MongoDBIO(details=f'mongodb://'
                           f'{config("mDBurl")}:{config("mDBport")}/'
                           f'{config("mDBdatabase")}?authSource=admin')
 
-category = mongo.add_category(category=f"category.{timestamp}")
-device = mongo.add_device(hostname=f"hostname.{timestamp}", ip=f"ip.{timestamp}", category=category)
+# category = mongo.add_category(category=f"category.{timestamp}")
+# device = mongo.add_device(hostname=f"hostname.{timestamp}", ip=f"ip.{timestamp}", category=category)
+# 
+# devices = mongo.get_device_by_category(category=f"category.{timestamp}", page=1, amount=10)
+# devices = mongo.get_device_by_category(page=2, amount=10)
+# devices = mongo.get_device_by_category(category=f"category.{timestamp}")
+# devices = mongo.get_device_by_category()
 
-devices = mongo.get_device_by_category(category=f"category.{timestamp}", page=1, amount=10)
-devices = mongo.get_device_by_category(page=2, amount=10)
-devices = mongo.get_device_by_category(category=f"category.{timestamp}")
-devices = mongo.get_device_by_category()
+from src.models.models import example
+mongo.add_data_for_devices(json.dumps(example))
 
 
 
