@@ -18,7 +18,6 @@ from decouple import config
 from typing import Optional
 import datetime
 import humanize
-import git
 import pymongo.errors
 from bson import ObjectId
 
@@ -32,7 +31,7 @@ import time
 BAD_PARAM = "Bad Parameter"
 
 start_time = datetime.datetime.now()
-version = git.Repo(search_parent_directories=True).git.describe("--abbrev", "--always")
+version = "DEV"
 
 app = FastAPI()
 #try:
@@ -68,7 +67,7 @@ def custom_openapi():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="NetAPI",
-        version=version,
+        version="DEV",
         routes=app.routes,
     )
     openapi_schema["info"]["x-logo"] = {
