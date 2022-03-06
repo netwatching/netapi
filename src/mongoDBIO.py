@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import json
 
 import redis
@@ -13,7 +13,6 @@ from src.models.module import Type, Module
 from src.models.device import Device, Category, Data
 
 import asyncio
-import datetime
 
 
 # noinspection PyMethodMayBeStatic
@@ -40,6 +39,17 @@ class MongoDBIO:
     def get_category_by_category(self, category: str):
         try:
             return Category.objects.get({"category": category})
+        except Category.DuplicateKeyError:
+            return False
+
+    def add_event(self, device: Device, severity: int, event: str,
+                  timestamp: datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')):
+        try:
+            if severity < 0 or severity > 10:
+                return False
+
+            event = Event(device=device, severity=severity, event=event, timestamp=timestamp).save()
+            return event
         except Category.DuplicateKeyError:
             return False
 
@@ -124,32 +134,32 @@ class MongoDBIO:
 
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
             if cat is not None:
-                devices =  list(Device.objects \
-                    .raw({'category': cat.pk}) \
-                    .order_by([('_id', DESCENDING)]) \
-                    .skip((page - 1) * amount) \
-                    .limit(amount))
+                devices = list(Device.objects \
+                               .raw({'category': cat.pk}) \
+                               .order_by([('_id', DESCENDING)]) \
+                               .skip((page - 1) * amount) \
+                               .limit(amount))
             else:
                 devices = list(Device.objects \
-                    .order_by([('_id', DESCENDING)]) \
-                    .skip((page - 1) * amount) \
-                    .limit(amount))
+                               .order_by([('_id', DESCENDING)]) \
+                               .skip((page - 1) * amount) \
+                               .limit(amount))
 
         elif (page is None or page <= 0) and amount is None:
             if cat is not None:
                 devices = list(Device.objects \
-                    .raw({'category': cat.pk}) \
-                    .order_by([('_id', DESCENDING)]))
+                               .raw({'category': cat.pk}) \
+                               .order_by([('_id', DESCENDING)]))
             else:
                 devices = list(Device.objects \
-                    .order_by([('_id', DESCENDING)]) \
-                    .all())
+                               .order_by([('_id', DESCENDING)]) \
+                               .all())
         else:
             return -1
 
         out["devices"] = devices
         return out
-    
+
     def add_data_for_devices(self, data: str):
         try:
             data = json.loads(data)
@@ -157,12 +167,12 @@ class MongoDBIO:
             return False
 
         category = self.get_category_by_category("New")
-        
+
         for device in data["devices"]:
             dev = self.get_device_by_hostname(hostname=device["name"])
             if dev is None or (isinstance(dev, int) and dev == -1):
                 return -1
-                    
+
             if isinstance(dev, bool) and dev is False:
                 ip = None
                 if "ip" in device:
@@ -171,26 +181,41 @@ class MongoDBIO:
                 dev = self.add_device(hostname=device["name"], category=category, ip=ip)
             else:
                 return False
-            
+
             static_data = device["static_data"]
             for static_key in static_data:
                 self.__handle_static_data__(device=dev, key=static_key, input=static_data)
-                
+
     def __handle_static_data__(self, device: Device, key, input):
         for data in device.static:
             if data.key == key:
                 data.data = input[key]
                 data.save()
-                return 
+                return
 
         data = Data(key=key, data=input[key]).save()
         data_list = device.static
         data_list.append(data)
         device.static = data_list
         device.save()
-        
-            
-                
+
+    def __handle_live_data__(self, device: Device, key, input):
+        for data in device.live:
+            if data.key == key:
+                new_data = input
+                old_data = data.data
+
+                updated_data = old_data | new_data
+                data.data = updated_data
+
+                data.save()
+                return
+
+        data = Data(key=key, data=input).save()
+        data_list = device.live
+        data_list.append(data)
+        device.live = data_list
+        device.save()
 
     # --- Redis --- #
 
@@ -214,8 +239,7 @@ class MongoDBIO:
 
     async def thread_insertIntoDatabase(self):
         while True:
-            await asyncio.sleep(30 * 60)
-            # Run all 30 minutes
+            await asyncio.sleep(60 * 30)
 
             for i in range(0, len(self.redis_indices)):
                 pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
@@ -225,39 +249,37 @@ class MongoDBIO:
                 r = redis.Redis(connection_pool=pool)
 
                 for key in r.scan_iter():
-                    key = str(key, "utf-8")
-                    # Get all live-data entries currently stored
-                    scores = r.zrange(key, 0, -1, withscores=True)
-                    # Delete all entries of current database so already created events which have occurred in this set are
-                    # not inserted again. This also increases performance
-                    r.flushdb()
+                    hostname = str(key, "utf-8")
+                    scores = r.zrange(hostname, 0, -1, withscores=True)
 
-                    with self.session.begin() as session:
-                        device_id = session.query(func.netdb.insDevByCat(key, 3)).all()
+                    device = self.get_device_by_hostname(hostname)
+                    if isinstance(device, bool) and device is False:
+                        category = self.get_category_by_category("New")
+                        device = self.add_device(hostname=hostname, category=category)
 
-                        device_id = device_id[0][0]
-                        feature = self.redis_indices[i]
-                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    type = self.redis_indices[i]
 
-                        avg_score = 0
-                        for score in scores:
-                            avg_score += score[1]
-                            # This values will be changed in the future since currently we can not differentiate between
-                            # normal values and anomalies. Furthermore, it is extremely likely that some values
-                            # might get their own threshold values since every value is differently important. If this is
-                            # the case, the alert-message and severity will be changed accordingly too.
-                            if score[1] >= 1000000:
-                                query = f"Call insAleWithTimestampAndSeverityAndProblemByDevHostnameOrIp(" \
-                                        f"\"{timestamp}\", 3, \"A high level of {feature} has been detected\", \"{key}\", \"null\");"
-                                session.execute(query)
-                        if len(scores) > 0:
-                            avg_score /= len(scores)
+                    avg_score = 0
+                    for score in scores:
+                        avg_score += score[1]
+                        if score[1] >= 80000:
+                            timestamp = datetime.strptime(str(score[0], "utf-8"), '%Y-%m-%d %H:%M:%S')
+                            event = f"Unusual high amount of {type}: {score[1]}"
+                            self.add_event(device=device, event=event, severity=3, timestamp=timestamp)
 
-                        query = f"Call insValnByFeaNameAndDev({device_id}, \"{feature}\", \"{timestamp}\", {avg_score})"
-                        session.execute(query)
+                    if len(scores) > 0:
+                        avg_score /= len(scores)
+
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                    data = {timestamp: avg_score}
+                    self.__handle_live_data__(device=device, key=type, input=data)
+                    print(f"Inserted {device.hostname} for {type}")
+                r.flushdb()
+                print(f"Flushed {str(i)}")
 
 
-timestamp = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+timestamp = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
 mongo = MongoDBIO(details=f'mongodb://'
                           f'{config("mDBuser")}:{config("mDBpassword")}@'
@@ -273,7 +295,6 @@ mongo = MongoDBIO(details=f'mongodb://'
 # devices = mongo.get_device_by_category()
 
 from src.models.models import example
-mongo.add_data_for_devices(json.dumps(example))
 
-
-
+# mongo.add_data_for_devices(json.dumps(example))
+mongo.thread_insertIntoDatabase()

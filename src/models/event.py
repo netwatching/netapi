@@ -17,7 +17,8 @@ class Event(MongoModel):
             IndexModel(
                 [
                     ('event', DESCENDING),
-                    ('timestamp', DESCENDING)
+                    ('timestamp', DESCENDING),
+                    ('device', DESCENDING)
                 ], unique=True)
         ]
 

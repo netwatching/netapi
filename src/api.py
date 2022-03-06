@@ -13,7 +13,7 @@ from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices, AggregatorByID, \
-    AddDataForDevices
+    AddDataForDevices, RedisData
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -477,29 +477,17 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 # --- Redis --- #
 @app.post("/api/redis")  # TODO: rewrite @Tobi
 # async def redis(request: Request):
-async def redis(request: Request, authorize: AuthJWT = Depends()):
+async def redis(request: RedisData, authorize: AuthJWT = Depends()):
     """
     /redis - POST - aggregator sends all live-data variables
     """
     authorize.jwt_required()
 
-    jsondata = await request.json()
-
-    db.redis_insert_live_data(jsondata)
+    mongo.redis_insert_live_data(request)
     return JSONResponse(
         status_code=200,
         content={"detail": "Inserted"}
     )
-
-    # {
-    #     "device": "TESTING",
-    #     "data": {
-    #         "in_bytes": {
-    #             "2022-01-23 21:00:00": "2000"
-    #         }
-    #     }
-    # }
-
 
 # --- Exception Handling --- #
 @app.exception_handler(AuthJWTException)

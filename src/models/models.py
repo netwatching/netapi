@@ -5849,6 +5849,15 @@ class AddDataForDevices(BaseModel):
     data: str = json.dumps(example)
 
 
+class RedisData(BaseModel):
+    device: str = "Testing"
+    data: dict[str, dict[str, str]] = {"data": {
+            "in_bytes": {
+                "2022-01-23 21:00:00": "2000"
+            }
+        }}
+
+
 # --- Old Models for old DB --- #
 
 class oldDevice(BaseModel):  # old device model, should be deleted
