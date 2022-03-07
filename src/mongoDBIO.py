@@ -127,6 +127,14 @@ class MongoDBIO:
         else:
             return True
 
+    def check_if_device_exsits(self, hostname: str):
+        count = 0
+        count = Device.objects.raw({"hostname": hostname}).count()
+        if count == 0:
+            return False
+        else:
+            return True
+
 
     def get_device_by_category(self, category: str = None, page: int = None, amount: int = None):
         cat = None
@@ -195,8 +203,6 @@ class MongoDBIO:
                 if "ip" in device:
                     ip = device["ip"]
                 dev = self.add_device(hostname=device["name"], category=category, ip=ip)
-            else:
-                allowed = False
 
             if allowed is True:
                 static_data = device["static_data"]
@@ -217,14 +223,13 @@ class MongoDBIO:
                 allowed = False
 
             if isinstance(dev, bool) and dev is False:
-                dev = self.add_device(hostname=device["name"], category=category, ip=ip)
+                dev = self.add_device(hostname=hostname, category=category)
             else:
                 allowed = False
 
             if allowed is True:
                 self.__handle_events__(device=dev, events=external_events[hostname])
 
-        
 
     def __handle_static_data__(self, device: Device, key, input):
         for data in device.static:
