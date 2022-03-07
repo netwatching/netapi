@@ -184,17 +184,21 @@ class MongoDBIO:
 
             static_data = device["static_data"]
             for static_key in static_data:
-                self.__handle_static_data__(device=dev, key=static_key, input=static_data)
+                self.__handle_static_data__(device=dev, key=static_key, input=static_data[static_key])
+
+            live_data = device["live_data"]
+            for live_key in live_data:
+                self.__handle_live_data__(device=dev, key=live_key, input=live_data[live_key])
             return True
 
     def __handle_static_data__(self, device: Device, key, input):
         for data in device.static:
             if data.key == key:
-                data.data = input[key]
+                data.data = input
                 data.save()
                 return
 
-        data = Data(key=key, data=input[key]).save()
+        data = Data(key=key, data=input).save()
         data_list = device.static
         data_list.append(data)
         device.static = data_list
