@@ -340,9 +340,11 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     """
     /devices/data - POST - aggregator sends data which is saved in the Database
     """
+    authorize.jwt_required()
 
-
-
+    success = mongo.add_data_for_devices(data=request.data)
+    if (isinstance(success, bool) is False and success is False) or (isinstance(success, int) and success == -1):
+        raise HTTPException(status_code=400, detail="Error occurred")
 
 @app.get("/api/devices/{did}/alerts")  # TODO: rewrite
 async def get_alerts_by_device(

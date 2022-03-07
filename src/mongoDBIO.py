@@ -185,6 +185,7 @@ class MongoDBIO:
             static_data = device["static_data"]
             for static_key in static_data:
                 self.__handle_static_data__(device=dev, key=static_key, input=static_data)
+            return True
 
     def __handle_static_data__(self, device: Device, key, input):
         for data in device.static:
