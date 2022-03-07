@@ -129,15 +129,15 @@ class AggregatorModulesIn(BaseModel):
 class AggregatorModulesOut(BaseModel):
     detail: str = "Inserted"
 
-<<<<<<< HEAD
+
 class AddDataForDevices(BaseModel):
     devices: list[Device]
     external_events: ExternalEvents
-=======
+
 
 class AddDeviceIn(BaseModel):
     device: str = "name"
-    ip: Optional[str] = "1.2.3.4"
+    ip: Optional[str] = "testDevice.local or 0.0.0.0"
     category: str = "category"
 
 
@@ -5898,7 +5898,6 @@ class AddDataForDevices(BaseModel):
     devices: list = json.dumps(example_devices)
     external_events: dict = json.dumps(example_external_events)
 
->>>>>>> master
 
 class RedisData(BaseModel):
     device: str = "Testing"

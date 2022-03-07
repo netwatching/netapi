@@ -14,6 +14,8 @@ from src.models.device import Device, Category, Data
 
 from src.crypt import Crypt
 
+from bson import ObjectId
+
 import asyncio
 
 
@@ -357,7 +359,8 @@ class MongoDBIO:
         except Category.MultipleObjectsReturned:
             return -1
 
-        # TODO: wait for steigers function
-        # dev = Device(device=device, category=category, ip=ip)
+        if not self.check_if_device_exsits(device):
+            return Device(hostname=device, category=cat.pk, ip=ip).save()
+        return False
 
 

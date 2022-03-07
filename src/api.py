@@ -390,10 +390,9 @@ async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
     """
     authorize.jwt_required()
 
-    mongo.add_device_web(request.device, request.category, request.ip)
-
-    return AddDeviceOut(detail="success")
-
+    if mongo.add_device_web(request.device, request.category, request.ip):
+        return AddDeviceOut(detail="success")
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- Category --- #
