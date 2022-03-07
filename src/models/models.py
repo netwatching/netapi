@@ -100,6 +100,11 @@ class GetAllDevices(BaseModel):
     page: Optional[int] = "5"
     amount: Optional[int] = "20"
 
+class AggregatorVersionIn(BaseModel):
+    version: str = "1.0.0"
+
+class AggregatorVersionOut(BaseModel):
+    detail: str = "Updated"
 
 example = {
     "devices": [

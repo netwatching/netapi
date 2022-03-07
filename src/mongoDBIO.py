@@ -283,5 +283,17 @@ class MongoDBIO:
                 r.flushdb()
                 print(f"Flushed {str(i)}")
 
+    def set_aggregator_version(self, id: str, ver: str)
+        try:
+            aggregator = Aggregator.objects.get({'_id': id})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
+        aggregator.version = ver
+        return aggregator.save()
+
+
 
 
