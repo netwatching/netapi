@@ -279,22 +279,4 @@ class MongoDBIO:
                 print(f"Flushed {str(i)}")
 
 
-timestamp = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
-mongo = MongoDBIO(details=f'mongodb://'
-                          f'{config("mDBuser")}:{config("mDBpassword")}@'
-                          f'{config("mDBurl")}:{config("mDBport")}/'
-                          f'{config("mDBdatabase")}?authSource=admin')
-
-# category = mongo.add_category(category=f"category.{timestamp}")
-# device = mongo.add_device(hostname=f"hostname.{timestamp}", ip=f"ip.{timestamp}", category=category)
-# 
-# devices = mongo.get_device_by_category(category=f"category.{timestamp}", page=1, amount=10)
-# devices = mongo.get_device_by_category(page=2, amount=10)
-# devices = mongo.get_device_by_category(category=f"category.{timestamp}")
-# devices = mongo.get_device_by_category()
-
-from src.models.models import example
-
-# mongo.add_data_for_devices(json.dumps(example))
-mongo.thread_insertIntoDatabase()
