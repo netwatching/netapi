@@ -349,4 +349,15 @@ class MongoDBIO:
         return(aggregator.save())
 
 
+    def add_device_web(self, device, category, ip):
+        try:
+            cat = Category.objects.get({'category': category})
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return -1
+
+        # TODO: wait for steigers function
+        # dev = Device(device=device, category=category, ip=ip)
+
 

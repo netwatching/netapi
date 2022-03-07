@@ -135,6 +135,16 @@ class AddDataForDevices(BaseModel):
     external_events: ExternalEvents
 =======
 
+class AddDeviceIn(BaseModel):
+    device: str = "name"
+    ip: Optional[str] = "1.2.3.4"
+    category: str = "category"
+
+
+class AddDeviceOut(BaseModel):
+    detail: str = "Success"
+
+
 example_devices = {
     "devices": [
         {
