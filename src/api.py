@@ -14,7 +14,7 @@ from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, AggregatorByID, \
     AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
-    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut
+    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -266,7 +266,8 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     id = ObjectId(id)
 
     db_result = mongo.get_aggregator_devices(id)
-    return db_result
+    # TODO: serialize aggregator
+    return AggregatorByID()
 
 
 @app.post("/api/aggregator/{id}/version", response_model=AggregatorVersionOut)
@@ -396,14 +397,14 @@ async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
 
 
 # --- Category --- #
-@app.get("/api/categories")  # TODO: rewrite
+@app.get("/api/categories")  # TODO: rewrite - steiger pls de mongo gibt ma do ned olls hinter
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories
     """
     authorize.jwt_required()
 
-    return db.get_categories()
+    return mongo.get_categories()
 
 
 @app.post("/api/categories", response_model=AddCategoryOut)
@@ -448,18 +449,22 @@ async def get_all_alerts(
     return out
 
 
-@app.get("/api/alerts/{aid}")  # TODO: rewrite
-async def get_alert_by_id(aid: int, authorize: AuthJWT = Depends()):
+@app.get("/api/alerts/{event_id}", response_model=GetAlertByIdOut)
+async def get_alert_by_id(event_id: int, authorize: AuthJWT = Depends()):
     """
     /alerts/{aid} - GET - get specific alert by id
     """
     authorize.jwt_required()
 
-    return db.get_alerts_by_id(aid)
+    event = mongo.get_event_by_id(event_id)
+
+    if event:
+        return GetAlertByIdOut(event=event)
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- Modules --- #
-@app.get("/api/modules")  # TODO: rewrite
+@app.get("/api/modules")  # TODO: rewrite de froge is welche modules? modules modules oder module types
 async def get_all_modules(authorize: AuthJWT = Depends()):
     """
     /modules - GET - get all modules

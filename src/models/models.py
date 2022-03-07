@@ -56,8 +56,8 @@ class Device(BaseModel):
 class Event(BaseModel):
     information: str = "event has happend"
     timestamp: datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    severity: int = 5
-    device: str = "621bcca84763b786518e2a4f"
+    severity: int = 2
+    device_id: str = "621bcca84763b786518e2a4f"
 
 class ExternalEvents(BaseModel):
     external_event: dict[str, list[dict]]
@@ -151,6 +151,10 @@ class AddCategoryIn(BaseModel):
 
 class AddCategoryOut(BaseModel):
     detail: str = "Success"
+
+
+class GetAlertByIdOut(BaseModel):
+    event: Event
 
 
 example_devices = {

@@ -105,7 +105,7 @@ class MongoDBIO:
         print(id)
         try:
             ag = Aggregator.objects.get({'_id': id})
-            return ag.devices
+            return ag
         except Aggregator.DoesNotExist:
             return False
         except Aggregator.MultipleObjectsReturned:
@@ -382,5 +382,22 @@ class MongoDBIO:
         if not self.check_if_device_exsits(device):
             return Device(hostname=device, category=cat.pk, ip=ip).save()
         return False
+
+
+    def get_categories(self):
+        # TODO: stiger pls help des geht nita
+        return Category.objects.order_by([('_id', DESCENDING)]).all()
+
+
+    def get_event_by_id(self, event_id):
+        try:
+            event_id = ObjectId(event_id)
+            event = Event.objects.get({'_id': event_id})
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return -1
+
+        return event
 
 
