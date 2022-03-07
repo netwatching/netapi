@@ -14,6 +14,8 @@ from src.models.device import Device, Category, Data
 
 from src.crypt import Crypt
 
+from bson import ObjectId
+
 import asyncio
 
 
@@ -368,5 +370,17 @@ class MongoDBIO:
         aggregator.types = types
         return(aggregator.save())
 
+
+    def add_device_web(self, device, category, ip):
+        try:
+            cat = Category.objects.get({'category': category})
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return -1
+
+        if not self.check_if_device_exsits(device):
+            return Device(hostname=device, category=cat.pk, ip=ip).save()
+        return False
 
 

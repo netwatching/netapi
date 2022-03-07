@@ -14,7 +14,7 @@ from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, AggregatorByID, \
     AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
-    DeviceByIdOut
+    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -383,22 +383,15 @@ async def get_alerts_by_device(
     return out
 
 
-@app.post("/api/devices")  # TODO: rewrite
-async def add_device(request: Request, authorize: AuthJWT = Depends()):
+@app.post("/api/devices", response_model=AddDeviceOut)
+async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
     """
     /devices/add - GET - adds a new device to the DB
     """
     authorize.jwt_required()
 
-    data = await request.json()
-
-    if data.get('device') is not None and data.get('category') is not None:
-        try:
-            db.add_device(data['device'], data['category'], data['ip'])
-        except sqlalchemy.exc.IntegrityError:
-            raise HTTPException(status_code=400, detail="already exists")
-        return {"status": "success"}
-
+    if mongo.add_device_web(request.device, request.category, request.ip):
+        return AddDeviceOut(detail="success")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
@@ -413,22 +406,15 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     return db.get_categories()
 
 
-@app.post("/api/categories")  # TODO: rewrite
-async def add_categories(request: Request, authorize: AuthJWT = Depends()):
+@app.post("/api/categories", response_model=AddCategoryOut)
+async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends()):
     """
     /categories - POST - add a new Category to the DB
     """
     authorize.jwt_required()
 
-    data = await request.json()
-
-    if data.get('category') is not None:
-        try:
-            db.add_category(data['category'])
-        except sqlalchemy.exc.IntegrityError:
-            raise HTTPException(status_code=400, detail="already exists")
-        return {"status": "success"}
-
+    if mongo.add_category(category=request.category):
+        return AddCategoryOut(detail="success")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
