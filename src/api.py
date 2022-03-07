@@ -12,8 +12,9 @@ from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices, AggregatorByID, \
-    AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, AggregatorByID, \
+    AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
+    DeviceByIdOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -306,34 +307,35 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
 
 
 # --- DEVICES --- #
-@app.get("/api/devices")
-async def get_all_devices(request: GetAllDevices, authorize: AuthJWT = Depends()):
+@app.get("/api/devices") # TODO: review later
+async def get_all_devices(
+            category: Optional[str] = "",
+            page: Optional[int] = None,
+            amount: Optional[int] = None,
+            authorize: AuthJWT = Depends()
+):
     """
     /devices - GET - get all devices in a base version for the frontend
     """
 
     authorize.jwt_required()
 
-    category = request.category
-    page = request.page
-    amount = request.amount
-
     devices = mongo.get_device_by_category(category=category, page=page, amount=amount)
     if devices == -1 or devices is False:
         raise HTTPException(status_code=400, detail="Error occurred")
 
-    return JSONResponse(status_code=200, content=json.dumps(devices))
+    return GetAllDevicesOut(devices=devices)
 
 
-@app.get("/api/devices/{id}")  # TODO: rewrite
-async def device_by_id(request: DeviceById, authorize: AuthJWT = Depends()):
+@app.get("/api/devices/{id}", response_model=DeviceByIdOut)
+async def device_by_id(request: DeviceByIdIn, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns device infos with specified id
     """
     authorize.jwt_required()
 
-    device = mongo.get_device_by_id(DeviceById.id)
-    return JSONResponse(status_code=200, content=json.dumps(device))
+    device = mongo.get_device_by_id(request.id)
+    return DeviceByIdOut(device=device)
 
 
 @app.post("/api/devices/data")  # TODO: rewrite
@@ -343,7 +345,11 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     """
     authorize.jwt_required()
 
-    success = mongo.add_data_for_devices(data=request.devices, )
+    success = mongo.add_data_for_devices(devices=request.devices, external_events=request.external_events)
+    # TODO: fix mongo function
+    # File "C:\repos\netwatch\netapi\src\mongoDBIO.py", line 198, in add_data_for_devices
+    # self.__handle_static_data__(device=dev, key=static_key, input=static_data[static_key])
+    # TypeError: list indices must be integers or slices, not dict
     if (isinstance(success, bool) is False and success is False) or (isinstance(success, int) and success == -1):
         raise HTTPException(status_code=400, detail="Error occurred")
 

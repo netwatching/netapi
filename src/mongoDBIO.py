@@ -175,13 +175,7 @@ class MongoDBIO:
         out["devices"] = devices
         return out
 
-    def add_data_for_devices(self, devices: str, external_events: str):
-        try:
-            devices = json.loads(devices)
-            external_events = json.loads(external_events)
-        except ValueError:
-            return False
-
+    def add_data_for_devices(self, devices: list, external_events: dict):
         category = self.get_category_by_category("New")
 
         for device in devices:

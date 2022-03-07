@@ -81,8 +81,12 @@ class AddAggregatorOut(BaseModel):
     detail: str = "Created"
 
 
-class DeviceById(BaseModel):
+class DeviceByIdIn(BaseModel):
     id: str = "621bcca84763b786518e2a4f"
+
+
+class DeviceByIdOut(BaseModel):
+    device: Device
 
 
 class AggregatorByID(BaseModel):
@@ -96,22 +100,25 @@ class GetDevicesByAggregator(BaseModel):
     id: str = "621bcca84763b786518e2a4f"
 
 
-class GetAllDevices(BaseModel):
-    category: Optional[str] = "Testing"
-    page: Optional[int] = "5"
-    amount: Optional[int] = "20"
+class GetAllDevicesOut(BaseModel):
+    devices: list[Device]
+
 
 class AggregatorVersionIn(BaseModel):
     version: str = "1.0.0"
 
+
 class AggregatorVersionOut(BaseModel):
     detail: str = "Updated"
+
 
 class AggregatorModulesIn(BaseModel):
     modules: list[Type]
 
+
 class AggregatorModulesOut(BaseModel):
     detail: str = "Inserted"
+
 
 example_devices = {
     "devices": [
@@ -5856,22 +5863,24 @@ example_devices = {
 
 }
 example_external_events = {
-        "external_events": {
+    "external_events": {
 
     }
 }
+
+
 class AddDataForDevices(BaseModel):
-    devices: str = json.dumps(example_devices)
-    external_events: str = json.dumps(example_external_events)
+    devices: list = json.dumps(example_devices)
+    external_events: dict = json.dumps(example_external_events)
 
 
 class RedisData(BaseModel):
     device: str = "Testing"
     data: dict[str, dict[str, str]] = {"data": {
-            "in_bytes": {
-                "2022-01-23 21:00:00": "2000"
-            }
-        }}
+        "in_bytes": {
+            "2022-01-23 21:00:00": "2000"
+        }
+    }}
 
 
 # --- Old Models for old DB --- #
