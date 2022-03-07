@@ -48,9 +48,12 @@ class MongoDBIO:
             if severity < 0 or severity > 10:
                 return False
 
-            event = Event(device=device, severity=severity, event=event, timestamp=timestamp).save()
+            event = Event(device=device, severity=severity, event=event, timestamp=timestamp)
+            if self.check_if_event_exists(event) is False:
+                event.save()
+
             return event
-        except Category.DuplicateKeyError:
+        except Event.DuplicateKeyError:
             return False
 
     def add_device(self, hostname: str, category: Category, ip: str = None):
@@ -113,6 +116,15 @@ class MongoDBIO:
         except Device.MultipleObjectsReturned:
             return -1
 
+    def check_if_event_exists(self, event: Event):
+        count = 0
+        count = Event.objects.raw({"event": event.event, "timestamp": event.timestamp, "device": event.Device}).count()
+        if count == 0:
+            return False
+        else:
+            return True
+
+
     def get_device_by_category(self, category: str = None, page: int = None, amount: int = None):
         cat = None
         try:
@@ -160,36 +172,56 @@ class MongoDBIO:
         out["devices"] = devices
         return out
 
-    def add_data_for_devices(self, data: str):
+    def add_data_for_devices(self, devices: str, external_events: str):
         try:
-            data = json.loads(data)
+            devices = json.loads(devices)
+            external_events = json.loads(external_events)
         except ValueError:
             return False
 
         category = self.get_category_by_category("New")
 
-        for device in data["devices"]:
+        for device in devices:
+            allowed = True
             dev = self.get_device_by_hostname(hostname=device["name"])
             if dev is None or (isinstance(dev, int) and dev == -1):
-                return -1
+                allowed = False
 
             if isinstance(dev, bool) and dev is False:
                 ip = None
                 if "ip" in device:
                     ip = device["ip"]
-
                 dev = self.add_device(hostname=device["name"], category=category, ip=ip)
             else:
-                return False
+                allowed = False
 
-            static_data = device["static_data"]
-            for static_key in static_data:
-                self.__handle_static_data__(device=dev, key=static_key, input=static_data[static_key])
+            if allowed is True:
+                static_data = device["static_data"]
+                for static_key in static_data:
+                    self.__handle_static_data__(device=dev, key=static_key, input=static_data[static_key])
 
-            live_data = device["live_data"]
-            for live_key in live_data:
-                self.__handle_live_data__(device=dev, key=live_key, input=live_data[live_key])
-            return True
+                live_data = device["live_data"]
+                for live_key in live_data:
+                    self.__handle_live_data__(device=dev, key=live_key, input=live_data[live_key])
+
+                events = device["events"]
+                self.__handle_events__(device=dev, events=events)
+
+        for hostname in external_events:
+            allowed = True
+            dev = self.get_device_by_hostname(hostname=hostname)
+            if dev is None or (isinstance(dev, int) and dev == -1):
+                allowed = False
+
+            if isinstance(dev, bool) and dev is False:
+                dev = self.add_device(hostname=device["name"], category=category, ip=ip)
+            else:
+                allowed = False
+
+            if allowed is True:
+                self.__handle_events__(device=dev, events=external_events[hostname])
+
+        
 
     def __handle_static_data__(self, device: Device, key, input):
         for data in device.static:
@@ -221,6 +253,10 @@ class MongoDBIO:
         data_list.append(data)
         device.live = data_list
         device.save()
+
+    def __handle_events__(self, device: Device, events: list[{str, str}]):
+        for event_dict in events:
+            self.add_event(event=event_dict["information"], severity=event_dict["severity"], timestamp=event_dict["timestamp"], device=device)
 
     # --- Redis --- #
 
@@ -279,9 +315,9 @@ class MongoDBIO:
 
                     data = {timestamp: avg_score}
                     self.__handle_live_data__(device=device, key=type, input=data)
-                    print(f"Inserted {device.hostname} for {type}")
+                    #print(f"Inserted {device.hostname} for {type}")
                 r.flushdb()
-                print(f"Flushed {str(i)}")
+                #print(f"Flushed {str(i)}")
 
 
 

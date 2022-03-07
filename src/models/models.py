@@ -101,7 +101,7 @@ class GetAllDevices(BaseModel):
     amount: Optional[int] = "20"
 
 
-example = {
+example_devices = {
     "devices": [
         {
             "id": "1",
@@ -5841,12 +5841,16 @@ example = {
             ]
         }
     ],
-    "external_events": {
+
+}
+example_external_events = {
+        "external_events": {
 
     }
 }
 class AddDataForDevices(BaseModel):
-    data: str = json.dumps(example)
+    devices: str = json.dumps(example_devices)
+    external_events: str = json.dumps(example_external_events)
 
 
 class RedisData(BaseModel):
