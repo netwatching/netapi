@@ -33,8 +33,9 @@ class Category(BaseModel):
 
 
 class Type(BaseModel):
-    type: str = "SoSoHo"
-    config: str = "JSON Static Config"
+    id: str = "SoSoHo"
+    config_signature: str = "JSON Static Config"
+    config_fields: str = "JSON Static Filled Config"
 
 
 class Module(BaseModel):
@@ -105,6 +106,12 @@ class AggregatorVersionIn(BaseModel):
 
 class AggregatorVersionOut(BaseModel):
     detail: str = "Updated"
+
+class AggregatorModulesIn(BaseModel):
+    modules: list[Type]
+
+class AggregatorModulesOut(BaseModel):
+    detail: str = "Inserted"
 
 example = {
     "devices": [

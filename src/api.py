@@ -13,7 +13,7 @@ from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices, AggregatorByID, \
-    AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut
+    AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -285,21 +285,20 @@ async def get_aggregator_version_by_id(request: AggregatorVersionIn, id: str = "
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/aggregator/{id}/modules")  # TODO: rewrite
-async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
+@app.post("/api/aggregator/{id}/modules", response_model=AggregatorModulesOut)
+async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
     """
     authorize.jwt_required()
 
-    if id:
-        jsondata = await request.json()
-
-        db.insert_aggregator_modules(jsondata, id)
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "Inserted"}
-        )
+    if id != "":
+        try:
+            modules = request.modules
+        except KeyError:
+            raise HTTPException(status_code=400, detail="Bad Parameter")
+        mongo.insert_aggregator_modules(modules, id)
+        return AggregatorModulesOut(detail="Inserted")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
