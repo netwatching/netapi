@@ -47,16 +47,24 @@ class MongoDBIO:
 
     def add_event(self, device: Device, severity: int, event: str,
                   timestamp: datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')):
+
+        if self.__is_float__(num=str(timestamp)) is True:
+            timestamp = datetime.utcfromtimestamp(float(str(timestamp))).strftime('%Y-%m-%d %H:%M:%S')
+
+        if severity < 0 or severity > 10:
+            return False
+
+        event = Event(device=device, severity=severity, event=event, timestamp=timestamp)
+        if self.check_if_event_exists(event) is False:
+            event.save()
+
+        return event
+
+    def __is_float__(self, num: str):
         try:
-            if severity < 0 or severity > 10:
-                return False
-
-            event = Event(device=device, severity=severity, event=event, timestamp=timestamp)
-            if self.check_if_event_exists(event) is False:
-                event.save()
-
-            return event
-        except Event.DuplicateKeyError:
+            float(num)
+            return True
+        except ValueError:
             return False
 
     def add_device(self, hostname: str, category: Category, ip: str = None):
@@ -120,15 +128,13 @@ class MongoDBIO:
             return -1
 
     def check_if_event_exists(self, event: Event):
-        count = 0
-        count = Event.objects.raw({"event": event.event, "timestamp": event.timestamp, "device": event.Device}).count()
+        count = Event.objects.raw({"event": event.event, "device": event.device.pk, "timestamp": event.timestamp}).count()
         if count == 0:
             return False
         else:
             return True
 
     def check_if_device_exsits(self, hostname: str):
-        count = 0
         count = Device.objects.raw({"hostname": hostname}).count()
         if count == 0:
             return False
@@ -201,11 +207,11 @@ class MongoDBIO:
             if allowed is True:
                 static_data = device["static_data"]
                 for static_key in static_data:
-                    self.__handle_static_data__(device=dev, key=static_key, input=static_data[static_key])
+                    self.__handle_static_data__(device=dev, key=static_key, input=self.__clean_dictionary__(static_data[static_key]))
 
                 live_data = device["live_data"]
                 for live_key in live_data:
-                    self.__handle_live_data__(device=dev, key=live_key, input=live_data[live_key])
+                    self.__handle_live_data__(device=dev, key=live_key, input=self.__clean_dictionary__(live_data[live_key]))
 
                 events = device["events"]
                 self.__handle_events__(device=dev, events=events)
@@ -218,8 +224,6 @@ class MongoDBIO:
 
             if isinstance(dev, bool) and dev is False:
                 dev = self.add_device(hostname=hostname, category=category)
-            else:
-                allowed = False
 
             if allowed is True:
                 self.__handle_events__(device=dev, events=external_events[hostname])
@@ -259,6 +263,22 @@ class MongoDBIO:
     def __handle_events__(self, device: Device, events: list[{str, str}]):
         for event_dict in events:
             self.add_event(event=event_dict["information"], severity=event_dict["severity"], timestamp=event_dict["timestamp"], device=device)
+
+    def __clean_dictionary__(self, dict: dict):
+        new_dict = {}
+        for key in dict:
+            if isinstance(key, str):
+                new_key = key.replace("__", ".")
+                new_dict[new_key.replace(".", "__")] = dict[key]
+        return new_dict
+
+    def __normalize_dictionary__(self, dict: dict):
+        new_dict = {}
+        for key in dict:
+            if isinstance(key, str):
+                new_key = key.replace("__", ".")
+                new_dict[new_key] = dict[key]
+        return new_dict
 
     # --- Redis --- #
 
