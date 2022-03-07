@@ -145,6 +145,14 @@ class AddDeviceOut(BaseModel):
     detail: str = "Success"
 
 
+class AddCategoryIn(BaseModel):
+    category: str = "category"
+
+
+class AddCategoryOut(BaseModel):
+    detail: str = "Success"
+
+
 example_devices = {
     "devices": [
         {
