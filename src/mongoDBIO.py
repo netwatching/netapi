@@ -12,6 +12,8 @@ from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
 from src.models.device import Device, Category, Data
 
+from src.crypt import Crypt
+
 import asyncio
 
 
@@ -24,6 +26,7 @@ class MongoDBIO:
                               "in_discards", "in_errors", "in_unknown_protocols",
                               "out_bytes", "out_unicast_packets", "out_non_unicast_packets",
                               "out_discards", "out_errors"]
+        self.crypt = Crypt()
 
     def get_modules(self):
         modules = list(Module.objects.order_by([['type', DESCENDING]]).all())
@@ -318,6 +321,33 @@ class MongoDBIO:
                     #print(f"Inserted {device.hostname} for {type}")
                 r.flushdb()
                 #print(f"Flushed {str(i)}")
+
+    def set_aggregator_version(self, id: str, ver: str):
+        try:
+            aggregator = Aggregator.objects.get({'_id': id})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
+        aggregator.version = ver
+        return aggregator.save()
+
+    def insert_aggregator_modules(self, modules, id):
+        try:
+            aggregator = Aggregator.objects.get({'_id': id})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
+        types = []
+        for t in modules:
+            type = Type(type=t["id"], signature=t["config_signature"], config=self.crypt.encrypt(t["config_fields"], config("cryptokey"))).save()
+            types.append(type)
+
+        aggregator.types = types
+        return(aggregator.save())
 
 
 

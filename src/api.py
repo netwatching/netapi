@@ -13,7 +13,7 @@ from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceById, GetAllDevices, AggregatorByID, \
-    AddDataForDevices, RedisData
+    AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -252,7 +252,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     return JSONResponse(status_code=201, content={"detail": "Created"})
 
 
-@app.get("/api/aggregator/{id}", response_model=AggregatorByID) # TODO: rewrite
+@app.get("/api/aggregator/{id}", response_model=AggregatorByID)
 async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -268,39 +268,37 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     return db_result
 
 
-@app.post("/api/aggregator/{id}/version")  # TODO: rewrite
-async def get_aggregator_version_by_id(id: int, request: Request, authorize: AuthJWT = Depends()):
+@app.post("/api/aggregator/{id}/version", response_model=AggregatorVersionOut)
+async def get_aggregator_version_by_id(request: AggregatorVersionIn, id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/version - POST - set version of the aggregator
     """
     authorize.jwt_required()
-    if id:
-        jsondata = await request.json()
+    if id != "":
         try:
-            ver = jsondata['version']
+            ver = request.version
         except KeyError:
             raise HTTPException(status_code=400, detail=BAD_PARAM)
 
-        db.set_aggregator_version(id, ver)
-        return {"detail": "updated"}
+        mongo.set_aggregator_version(id, ver)
+        return AggregatorVersionOut(detail="Updated")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/aggregator/{id}/modules")  # TODO: rewrite
-async def aggregator_modules(id: int, request: Request, authorize: AuthJWT = Depends()):
+@app.post("/api/aggregator/{id}/modules", response_model=AggregatorModulesOut)
+async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
     """
     authorize.jwt_required()
 
-    if id:
-        jsondata = await request.json()
-
-        db.insert_aggregator_modules(jsondata, id)
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "Inserted"}
-        )
+    if id != "":
+        try:
+            modules = request.modules
+        except KeyError:
+            raise HTTPException(status_code=400, detail="Bad Parameter")
+        mongo.insert_aggregator_modules(modules, id)
+        return AggregatorModulesOut(detail="Inserted")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 

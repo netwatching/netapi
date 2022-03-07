@@ -267,12 +267,7 @@ class DBIO:
             session.close()
         return alert
 
-    def insert_aggregator_modules(self, data, aid):
-        try:
-            modules = data["modules"]
-        except KeyError:
-            raise HTTPException(status_code=400, detail="Bad Parameter")
-
+    def insert_aggregator_modules(self, modules, aid):
         for d in modules:
             with self.session.begin() as session:
                 sth = insert(Type).values(type=d["id"],

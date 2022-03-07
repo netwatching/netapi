@@ -20,4 +20,8 @@ if __name__ == "__main__":
     cfg.accesslog = "-"
     cfg.loglevel = "DEBUG"
 
-    asyncio.run(main(cfg))
+    while True:
+        try:
+            asyncio.run(main(cfg))
+        except Exception:
+            continue
