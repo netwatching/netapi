@@ -280,6 +280,7 @@ async def get_aggregator_version_by_id(request: AggregatorVersionIn, id: str = "
         except KeyError:
             raise HTTPException(status_code=400, detail=BAD_PARAM)
 
+        id = ObjectId(id)
         mongo.set_aggregator_version(id, ver)
         return AggregatorVersionOut(detail="Updated")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
@@ -297,6 +298,8 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
             modules = request.modules
         except KeyError:
             raise HTTPException(status_code=400, detail="Bad Parameter")
+
+        id = ObjectId(id)
         mongo.insert_aggregator_modules(modules, id)
         return AggregatorModulesOut(detail="Inserted")
     raise HTTPException(status_code=400, detail=BAD_PARAM)

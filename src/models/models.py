@@ -34,8 +34,8 @@ class Category(BaseModel):
 
 class Type(BaseModel):
     id: str = "SoSoHo"
-    config_signature: str = "JSON Static Config"
-    config_fields: str = "JSON Static Filled Config"
+    config_signature: dict
+    config_fields: dict
 
 
 class Module(BaseModel):
