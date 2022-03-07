@@ -12,8 +12,9 @@ from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, AggregatorByID, \
-    AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
+    AggregatorByID, \
+    AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
@@ -36,10 +37,10 @@ start_time = datetime.datetime.now()
 version = "DEV"
 
 app = FastAPI()
-#try:
+# try:
 #    db = DBIO(
 #        db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
-#except mysql.connector.errors.DatabaseError:
+# except mysql.connector.errors.DatabaseError:
 #    sys.exit("No Database Connection...\nexiting...")
 
 # Note: Better logging if needed
@@ -215,6 +216,7 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
         )
     raise HTTPException(status_code=401, detail="Unauthorized")
 
+
 @app.post("/api/aggregator-refresh", response_model=ServiceLoginOut)
 async def aggregator_login(authorize: AuthJWT = Depends()):
     """
@@ -231,6 +233,7 @@ async def aggregator_login(authorize: AuthJWT = Depends()):
     expires = datetime.timedelta(hours=1)
     refresh_token = authorize.create_refresh_token(subject=current_user, expires_time=expires)
     return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
+
 
 # --- AGGREGATOR --- #
 @app.post("/api/aggregator", status_code=201, response_model=AddAggregatorOut)
@@ -308,12 +311,12 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
 
 
 # --- DEVICES --- #
-@app.get("/api/devices") # TODO: review later
+@app.get("/api/devices")  # TODO: review later
 async def get_all_devices(
-            category: Optional[str] = "",
-            page: Optional[int] = None,
-            amount: Optional[int] = None,
-            authorize: AuthJWT = Depends()
+        category: Optional[str] = "",
+        page: Optional[int] = None,
+        amount: Optional[int] = None,
+        authorize: AuthJWT = Depends()
 ):
     """
     /devices - GET - get all devices in a base version for the frontend
@@ -353,6 +356,7 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     # TypeError: list indices must be integers or slices, not dict
     if (isinstance(success, bool) is False and success is False) or (isinstance(success, int) and success == -1):
         raise HTTPException(status_code=400, detail="Error occurred")
+
 
 @app.get("/api/devices/{did}/alerts")  # TODO: rewrite
 async def get_alerts_by_device(
@@ -473,21 +477,6 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 
     return db.get_modules()
 
-
-# --- Redis --- #
-@app.post("/api/redis")  # TODO: rewrite @Tobi
-# async def redis(request: Request):
-async def redis(request: RedisData, authorize: AuthJWT = Depends()):
-    """
-    /redis - POST - aggregator sends all live-data variables
-    """
-    authorize.jwt_required()
-
-    mongo.redis_insert_live_data(request)
-    return JSONResponse(
-        status_code=200,
-        content={"detail": "Inserted"}
-    )
 
 # --- Exception Handling --- #
 @app.exception_handler(AuthJWTException)

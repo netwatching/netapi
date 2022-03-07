@@ -7,7 +7,7 @@ from hypercorn.asyncio import serve
 
 
 async def main(config):
-    await asyncio.gather(serve(app, cfg), MongoDBIO.thread_insertIntoDatabase(mongo))
+    await asyncio.gather(serve(app, config), MongoDBIO.thread_insertIntoDatabase(mongo))
 
 
 if __name__ == "__main__":

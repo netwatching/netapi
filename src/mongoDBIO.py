@@ -130,7 +130,8 @@ class MongoDBIO:
             return -1
 
     def check_if_event_exists(self, event: Event):
-        count = Event.objects.raw({"event": event.event, "device": event.device.pk, "timestamp": event.timestamp}).count()
+        count = Event.objects.raw(
+            {"event": event.event, "device": event.device.pk, "timestamp": event.timestamp}).count()
         if count == 0:
             return False
         else:
@@ -142,7 +143,6 @@ class MongoDBIO:
             return False
         else:
             return True
-
 
     def get_device_by_category(self, category: str = None, page: int = None, amount: int = None):
         cat = None
@@ -209,11 +209,11 @@ class MongoDBIO:
             if allowed is True:
                 static_data = device["static_data"]
                 for static_key in static_data:
-                    self.__handle_static_data__(device=dev, key=static_key, input=self.__clean_dictionary__(static_data[static_key]))
+                    self.__handle_static_data__(device=dev, key=static_key,
+                                                input=self.__clean_dictionary__(static_data[static_key]))
 
                 live_data = device["live_data"]
-                for live_key in live_data:
-                    self.__handle_live_data__(device=dev, key=live_key, input=self.__clean_dictionary__(live_data[live_key]))
+                self.redis_insert_live_data(device=dev, live_data=live_data)
 
                 events = device["events"]
                 self.__handle_events__(device=dev, events=events)
@@ -229,7 +229,7 @@ class MongoDBIO:
 
             if allowed is True:
                 self.__handle_events__(device=dev, events=external_events[hostname])
-
+        return True
 
     def __handle_static_data__(self, device: Device, key, input):
         for data in device.static:
@@ -264,7 +264,8 @@ class MongoDBIO:
 
     def __handle_events__(self, device: Device, events: list[{str, str}]):
         for event_dict in events:
-            self.add_event(event=event_dict["information"], severity=event_dict["severity"], timestamp=event_dict["timestamp"], device=device)
+            self.add_event(event=event_dict["information"], severity=event_dict["severity"],
+                           timestamp=event_dict["timestamp"], device=device)
 
     def __clean_dictionary__(self, dict: dict):
         new_dict = {}
@@ -282,16 +283,71 @@ class MongoDBIO:
                 new_dict[new_key] = dict[key]
         return new_dict
 
-    # --- Redis --- #
+    def set_aggregator_version(self, id, ver):
+        try:
+            aggregator = Aggregator.objects.get({'_id': id})
+        except Aggregator.DoesNotExist:
+            return False
+        except Aggregator.MultipleObjectsReturned:
+            return -1
 
-    def redis_insert_live_data(self, data):
-        hostname = data["device"]
+        aggregator.version = ver
+        return aggregator.save()
 
-        for interface_index in data["data"]:
-            database_index = self.redis_indices.index(interface_index)
+    def insert_aggregator_modules(self, modules, id):
+        try:
+            aggregator = Aggregator.objects.get({'_id': id})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
+        types = []
+        for t in modules:
+            type = Type(type=t.id, signature=t.config_signature,
+                        config=self.crypt.encrypt(json.dumps(t.config_fields), config("cryptokey"))).save()
+            types.append(type)
+
+        aggregator.types = types
+        return (aggregator.save())
+
+    def add_device_web(self, device, category, ip):
+        try:
+            cat = Category.objects.get({'category': category})
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return -1
+
+        if not self.check_if_device_exsits(device):
+            return Device(hostname=device, category=cat.pk, ip=ip).save()
+        return False
+
+    def get_categories(self):
+        # TODO: stiger pls help des geht nita
+        return Category.objects.order_by([('_id', DESCENDING)]).all()
+
+    def get_event_by_id(self, event_id):
+        try:
+            event_id = ObjectId(event_id)
+            event = Event.objects.get({'_id': event_id})
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return -1
+
+        return event
+
+        # --- Redis --- #
+
+    def redis_insert_live_data(self, device: Device, live_data: dict):
+        hostname = device.hostname
+
+        for key in live_data:
+            database_index = self.redis_indices.index(key)
 
             if database_index != -1:
-                self.redis_insert(hostname, data["data"][interface_index], database_index)
+                self.redis_insert(hostname, live_data[key], database_index)
 
     def redis_insert(self, hostname: str, values: list, database_index: int):
         pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
@@ -304,7 +360,7 @@ class MongoDBIO:
 
     async def thread_insertIntoDatabase(self):
         while True:
-            await asyncio.sleep(60 * 30)
+            await asyncio.sleep(30 * 60)
 
             for i in range(0, len(self.redis_indices)):
                 pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
@@ -328,8 +384,15 @@ class MongoDBIO:
                     for score in scores:
                         avg_score += score[1]
                         if score[1] >= 80000:
-                            timestamp = datetime.strptime(str(score[0], "utf-8"), '%Y-%m-%d %H:%M:%S')
-                            event = f"Unusual high amount of {type}: {score[1]}"
+
+                            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            event_time = str(score[0], "utf-8")
+                            if self.__is_float__(num=str(event_time)) is True:
+                                timestamp = datetime.fromtimestamp(score[0])
+                            elif isinstance(event_time, str):
+                                timestamp = datetime.strptime(event_time, '%Y-%m-%d %H:%M:%S')
+
+                            event = f"Unusual high amount of {type}: {str(score[1])}"
                             self.add_event(device=device, event=event, severity=3, timestamp=timestamp)
 
                     if len(scores) > 0:
@@ -339,65 +402,4 @@ class MongoDBIO:
 
                     data = {timestamp: avg_score}
                     self.__handle_live_data__(device=device, key=type, input=data)
-                    #print(f"Inserted {device.hostname} for {type}")
                 r.flushdb()
-                #print(f"Flushed {str(i)}")
-
-    def set_aggregator_version(self, id, ver):
-        try:
-            aggregator = Aggregator.objects.get({'_id': id})
-        except Aggregator.DoesNotExist:
-            return False
-        except Aggregator.MultipleObjectsReturned:
-            return -1
-
-        aggregator.version = ver
-        return aggregator.save()
-
-    def insert_aggregator_modules(self, modules, id):
-        try:
-            aggregator = Aggregator.objects.get({'_id': id})
-        except Device.DoesNotExist:
-            return False
-        except Device.MultipleObjectsReturned:
-            return -1
-
-        types = []
-        for t in modules:
-            type = Type(type=t.id, signature=t.config_signature, config=self.crypt.encrypt(json.dumps(t.config_fields), config("cryptokey"))).save()
-            types.append(type)
-
-        aggregator.types = types
-        return(aggregator.save())
-
-
-    def add_device_web(self, device, category, ip):
-        try:
-            cat = Category.objects.get({'category': category})
-        except Category.DoesNotExist:
-            return False
-        except Category.MultipleObjectsReturned:
-            return -1
-
-        if not self.check_if_device_exsits(device):
-            return Device(hostname=device, category=cat.pk, ip=ip).save()
-        return False
-
-
-    def get_categories(self):
-        # TODO: stiger pls help des geht nita
-        return Category.objects.order_by([('_id', DESCENDING)]).all()
-
-
-    def get_event_by_id(self, event_id):
-        try:
-            event_id = ObjectId(event_id)
-            event = Event.objects.get({'_id': event_id})
-        except Category.DoesNotExist:
-            return False
-        except Category.MultipleObjectsReturned:
-            return -1
-
-        return event
-
-
