@@ -195,13 +195,19 @@ class MongoDBIO:
             category = d.category.category
 
             for s in d.static:
-                static.append(s.to_son().to_dict())
+                r = s.to_son().to_dict()
+                r.pop('_id')
+                static.append(r)
 
             for l in d.live:
-                live.append(l.to_son().to_dict())
+                r = l.to_son().to_dict()
+                r.pop('_id')
+                live.append(r)
                 
             for m in d.modules:
-                modules.append(m.to_son().to_dict())
+                r = m.to_son().to_dict()
+                r.pop('_id')
+                modules.append(r)
                 
             d = d.to_son().to_dict()
             d["category"] = category
@@ -209,11 +215,11 @@ class MongoDBIO:
             d["live"] = live
             d["modules"] = modules
             
+            d.pop("_id")
             devs.append(d)
-            print(d)
 
         out["devices"] = devs
-        #print(out)
+        print(out)
         return out
 
     def add_data_for_devices(self, devices: list, external_events: dict):
