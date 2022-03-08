@@ -163,35 +163,57 @@ class MongoDBIO:
 
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
             if cat is not None:
-                devices = Device.objects \
+                devices = list(Device.objects \
                                .raw({'category': cat.pk}) \
                                .order_by([('_id', DESCENDING)]) \
                                .skip((page - 1) * amount) \
-                               .limit(amount)
+                               .limit(amount))
             else:
-                devices = Device.objects \
+                devices = list(Device.objects \
                                .order_by([('_id', DESCENDING)]) \
                                .skip((page - 1) * amount) \
-                               .limit(amount)
+                               .limit(amount))
 
         elif (page is None or page <= 0) and amount is None:
             if cat is not None:
-                devices = Device.objects \
+                devices = list(Device.objects \
                                .raw({'category': cat.pk}) \
-                               .order_by([('_id', DESCENDING)])
+                               .order_by([('_id', DESCENDING)]))
             else:
-                devices = Device.objects \
+                devices = list(Device.objects \
                                .order_by([('_id', DESCENDING)]) \
-                               .all()
+                               .all())
         else:
             return -1
 
         devs = []
+        category = ""
+        static = []
+        live = []
+        modules = []
         for d in devices:
-            devs.append(d.to_son().to_dict())
+            category = d.category.category
+
+            for s in d.static:
+                static.append(s.to_son().to_dict())
+
+            for l in d.live:
+                live.append(l.to_son().to_dict())
+                
+            for m in d.modules:
+                modules.append(m.to_son().to_dict())
+                
+            d = d.to_son().to_dict()
+            d["category"] = category
+            d["static"] = static
+            d["live"] = live
+            d["modules"] = modules
+            
+            devs.append(d)
+            print(d)
 
         out["devices"] = devs
-        print(out)
+        #print(out)
         return out
 
     def add_data_for_devices(self, devices: list, external_events: dict):
