@@ -142,7 +142,7 @@ class MongoDBIO:
         else:
             return True
 
-    def get_device_by_category(self, category: str = "", page: int = None, amount: int = None):
+    def get_device_by_category_full(self, category: str = "", page: int = None, amount: int = None):
         cat = None
         try:
             if category != "":
@@ -228,6 +228,70 @@ class MongoDBIO:
             d["modules"] = modules
             
             d.pop("_id")
+            devs.append(d)
+
+        out["devices"] = devs
+        return out
+
+    def get_device_by_category(self, category: str = "", page: int = None, amount: int = None):
+        cat = None
+        try:
+            if category != "":
+                cat = Category.objects.get({'category': category})
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return -1
+
+        out = {}
+        if cat is not None:
+            total = Device.objects.raw({'category': cat.pk}).count()
+        else:
+            total = Device.objects.all().count()
+        out["page"] = page
+        out["amount"] = amount
+        out["total"] = total
+
+        if (page is not None and amount is not None) and (page > 0 and amount > 0):
+            if cat is not None:
+                devices = list(Device.objects \
+                               .raw({'category': cat.pk}) \
+                               .order_by([('_id', DESCENDING)]) \
+                               .skip((page - 1) * amount) \
+                               .limit(amount))
+            else:
+                devices = list(Device.objects \
+                               .order_by([('_id', DESCENDING)]) \
+                               .skip((page - 1) * amount) \
+                               .limit(amount))
+
+        elif (page is None or page <= 0) and amount is None:
+            if cat is not None:
+                devices = list(Device.objects \
+                               .raw({'category': cat.pk}) \
+                               .order_by([('_id', DESCENDING)]))
+            else:
+                devices = list(Device.objects \
+                               .order_by([('_id', DESCENDING)]) \
+                               .all())
+        else:
+            return -1
+
+        devs = []
+        category = ""
+        pk = ""
+        for d in devices:
+            category = d.category.category
+
+            pk = str(d.pk)
+
+            d = d.to_son().to_dict()
+            d["_id"] = pk
+            d["category"] = category
+            d["static"] = []
+            d["live"] = []
+            d["modules"] = []
+
             devs.append(d)
 
         out["devices"] = devs

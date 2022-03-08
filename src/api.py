@@ -308,6 +308,25 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
 
 
 # --- DEVICES --- #
+@app.get("/api/devices/all")
+async def get_all_devices(
+        category: Optional[str] = "",
+        page: Optional[int] = None,
+        amount: Optional[int] = None,
+        authorize: AuthJWT = Depends()
+):
+    """
+    /devices - GET - get all devices in a base version for the frontend
+    """
+
+    authorize.jwt_required()
+
+    result = mongo.get_device_by_category_full(category=category, page=page, amount=amount)
+    if result == -1 or result is False:
+        raise HTTPException(status_code=400, detail="Error occurred")
+    return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
+
+
 @app.get("/api/devices")
 async def get_all_devices(
         category: Optional[str] = "",
@@ -324,7 +343,6 @@ async def get_all_devices(
     result = mongo.get_device_by_category(category=category, page=page, amount=amount)
     if result == -1 or result is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-    # TODO: Steiger devices not serialized correctly
     return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
 
 
