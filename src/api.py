@@ -365,11 +365,7 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     authorize.jwt_required()
 
     success = mongo.add_data_for_devices(devices=request.devices, external_events=request.external_events)
-<<<<<<< HEAD
     if (isinstance(success, bool) is True and success is False) or (isinstance(success, int) and success == -1):
-=======
-    if (isinstance(success, bool) is False and success is False) or (isinstance(success, int) and success == -1):
->>>>>>> master
         raise HTTPException(status_code=400, detail="Error occurred")
     return AddDataForDeviceOut(detail="success")
 
