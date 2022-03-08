@@ -324,7 +324,6 @@ async def get_all_devices(
     result = mongo.get_device_by_category(category=category, page=page, amount=amount)
     if result == -1 or result is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-    print(result)
     # TODO: Steiger devices not serialized correctly
     return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
 
@@ -340,7 +339,7 @@ async def device_by_id(request: DeviceByIdIn, authorize: AuthJWT = Depends()):
     return DeviceByIdOut(device=device)
 
 
-@app.post("/api/devices/data")  # TODO: rewrite
+@app.post("/api/devices/data")
 async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends data which is saved in the Database
@@ -474,6 +473,9 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     return db.get_modules()
+
+
+# --- Config --- #
 
 
 # --- Exception Handling --- #
