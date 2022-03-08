@@ -102,7 +102,6 @@ class MongoDBIO:
 
     # https://stackoverflow.com/questions/46366398/how-to-convert-pymodm-objects-to-json
     def get_aggregator_devices(self, id: str):
-        print(id)
         try:
             ag = Aggregator.objects.get({'_id': id})
             return ag
