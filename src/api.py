@@ -316,7 +316,7 @@ async def get_all_devices(
         authorize: AuthJWT = Depends()
 ):
     """
-    /devices - GET - get all devices in a base version for the frontend
+    /devices/all - GET - get all devices in a full version for the frontend (long execution time!!!)
     """
 
     authorize.jwt_required()
@@ -416,12 +416,15 @@ async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
 
 
 # --- Category --- #
-@app.get("/api/categories")  # TODO: rewrite - steiger pls de mongo gibt ma do ned olls hinter
+@app.get("/api/categories")
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories
     """
     authorize.jwt_required()
+
+    result = mongo.get_categories()
+    print(result)
 
     return mongo.get_categories()
 

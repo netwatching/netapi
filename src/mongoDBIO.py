@@ -419,8 +419,16 @@ class MongoDBIO:
         return False
 
     def get_categories(self):
-        # TODO: stiger pls help des geht nita
-        return Category.objects.order_by([('_id', DESCENDING)]).all()
+        categories =  list(Category.objects.order_by([('_id', DESCENDING)]).all())
+
+        out = []
+        for c in categories:
+            pk = str(c.pk)
+            c = c.to_son().to_dict()
+            c["_id"] = pk
+            out.append(c)
+
+        return out
 
     def get_event_by_id(self, event_id):
         try:
