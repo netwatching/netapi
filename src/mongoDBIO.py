@@ -163,26 +163,15 @@ class MongoDBIO:
 
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
             if cat is not None:
-                devices = Device.objects \
-                               .raw({'category': cat.pk}) \
-                               .order_by([('_id', DESCENDING)]) \
-                               .skip((page - 1) * amount) \
-                               .limit(amount)
+                devices = Device.objects.raw({'category': cat.pk}).order_by([('_id', DESCENDING)]).skip((page - 1) * amount).limit(amount)
             else:
-                devices = Device.objects \
-                               .order_by([('_id', DESCENDING)]) \
-                               .skip((page - 1) * amount) \
-                               .limit(amount)
+                devices = Device.objects.order_by([('_id', DESCENDING)]).skip((page - 1) * amount).limit(amount)
 
         elif (page is None or page <= 0) and amount is None:
             if cat is not None:
-                devices = Device.objects \
-                               .raw({'category': cat.pk}) \
-                               .order_by([('_id', DESCENDING)])
+                devices = Device.objects.raw({'category': cat.pk}).order_by([('_id', DESCENDING)])
             else:
-                devices = Device.objects \
-                               .order_by([('_id', DESCENDING)]) \
-                               .all()
+                devices = Device.objects.order_by([('_id', DESCENDING)]).all()
         else:
             return -1
 
@@ -191,7 +180,6 @@ class MongoDBIO:
             devs.append(d.to_son().to_dict())
 
         out["devices"] = devs
-        print(out)
         return out
 
     def add_data_for_devices(self, devices: list, external_events: dict):
