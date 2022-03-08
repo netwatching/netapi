@@ -1,8 +1,3 @@
-import os
-import sys
-
-import json
-import sqlalchemy.exc
 import inspect
 import re
 from fastapi.routing import APIRoute
@@ -11,10 +6,6 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
-from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
-    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, AggregatorByID, \
-    AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
-    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
 from typing import Optional
@@ -23,28 +14,22 @@ import humanize
 import pymongo.errors
 from bson import ObjectId
 
-from src.dbio import DBIO
 from src.mongoDBIO import MongoDBIO
-
-# only for test
-from random import randint
-import time
-
-BAD_PARAM = "Bad Parameter"
-
-start_time = datetime.datetime.now()
-version = "DEV"
-
-app = FastAPI()
-#try:
-#    db = DBIO(
-#        db_path=f'mysql+pymysql://{config("DBuser")}:{config("DBpassword")}@{config("DBurl")}:{config("DBport")}/{config("DBdatabase")}')
-#except mysql.connector.errors.DatabaseError:
-#    sys.exit("No Database Connection...\nexiting...")
+from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
+    ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
+    AggregatorByID, \
+    AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
+    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
 # app.add_middleware(RouteLoggerMiddleware)
+
+BAD_PARAM = "Bad Parameter"
+start_time = datetime.datetime.now()
+version = "DEV"
+
+app = FastAPI()
 
 mongo = MongoDBIO(
     details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
@@ -206,8 +191,10 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
 
         expires = datetime.timedelta(minutes=10)
         access_token = authorize.create_access_token(subject=aggregator_id, expires_time=expires)
+
         expires = datetime.timedelta(hours=1)
         refresh_token = authorize.create_refresh_token(subject=aggregator_id, expires_time=expires)
+
         return ServiceAggregatorLoginOut(
             aggregator_id=aggregator_id,
             access_token=access_token,
@@ -215,22 +202,23 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
         )
     raise HTTPException(status_code=401, detail="Unauthorized")
 
+
 @app.post("/api/aggregator-refresh", response_model=ServiceLoginOut)
 async def aggregator_login(authorize: AuthJWT = Depends()):
     """
     /aggregator-login - POST - aggregator login with token
     """
     authorize.jwt_refresh_token_required()
-
     current_user = authorize.get_jwt_subject()
+
     expires = datetime.timedelta(minutes=10)
-    access_token = authorize.create_access_token(
-        subject=current_user,
-        expires_time=expires
-    )
+    access_token = authorize.create_access_token(subject=current_user, expires_time=expires)
+
     expires = datetime.timedelta(hours=1)
     refresh_token = authorize.create_refresh_token(subject=current_user, expires_time=expires)
+
     return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
+
 
 # --- AGGREGATOR --- #
 @app.post("/api/aggregator", status_code=201, response_model=AddAggregatorOut)
@@ -320,12 +308,12 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
 
 
 # --- DEVICES --- #
-@app.get("/api/devices") # TODO: review later
+@app.get("/api/devices")
 async def get_all_devices(
-            category: Optional[str] = "",
-            page: Optional[int] = None,
-            amount: Optional[int] = None,
-            authorize: AuthJWT = Depends()
+        category: Optional[str] = "",
+        page: Optional[int] = None,
+        amount: Optional[int] = None,
+        authorize: AuthJWT = Depends()
 ):
     """
     /devices - GET - get all devices in a base version for the frontend
@@ -333,11 +321,12 @@ async def get_all_devices(
 
     authorize.jwt_required()
 
-    devices = mongo.get_device_by_category(category=category, page=page, amount=amount)
-    if devices == -1 or devices is False:
+    result = mongo.get_device_by_category(category=category, page=page, amount=amount)
+    if result == -1 or result is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-
-    return GetAllDevicesOut(devices=devices)
+    print(result)
+    # TODO: Steiger devices not serialized correctly
+    return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
 
 
 @app.get("/api/devices/{id}", response_model=DeviceByIdOut)
@@ -365,6 +354,7 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     # TypeError: list indices must be integers or slices, not dict
     if (isinstance(success, bool) is False and success is False) or (isinstance(success, int) and success == -1):
         raise HTTPException(status_code=400, detail="Error occurred")
+
 
 @app.get("/api/devices/{did}/alerts")  # TODO: steiger rewrite
 async def get_alerts_by_device(
@@ -484,6 +474,7 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     return db.get_modules()
+
 
 # --- Exception Handling --- #
 @app.exception_handler(AuthJWTException)

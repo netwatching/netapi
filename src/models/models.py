@@ -17,7 +17,7 @@ Base = declarative_base(cls=repr.RepresentableBase)
 
 
 class APIStatus(BaseModel):
-    message: str = "OrderService is up and running"
+    message: str = "NetAPI is up and running"
     version: str
     uptime: str
 
@@ -118,7 +118,10 @@ class GetDevicesByAggregator(BaseModel):
 
 
 class GetAllDevicesOut(BaseModel):
-    devices: list[Device]
+    page: int = None
+    amount: int = None
+    total: int = 123
+    devices: list
 
 
 class AggregatorVersionIn(BaseModel):

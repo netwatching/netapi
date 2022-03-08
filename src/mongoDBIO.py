@@ -100,8 +100,7 @@ class MongoDBIO:
         except Aggregator.DuplicateKeyError:
             return False
 
-    # https://stackoverflow.com/questions/46366398/how-to-convert-pymodm-objects-to-json
-    def get_aggregator_devices(self, id: str):
+    def get_aggregator_devices(self, id):
         try:
             ag = Aggregator.objects.get({'_id': id})
             return ag
@@ -143,15 +142,17 @@ class MongoDBIO:
         else:
             return True
 
-    def get_device_by_category(self, category: str = None, page: int = None, amount: int = None):
+    def get_device_by_category(self, category: str = "", page: int = None, amount: int = None):
         cat = None
+        print(category)
         try:
-            if category is not None:
+            if category != "":
                 cat = Category.objects.get({'category': category})
         except Category.DoesNotExist:
             return False
         except Category.MultipleObjectsReturned:
             return -1
+        print(category)
 
         out = {}
         if cat is not None:
