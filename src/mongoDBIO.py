@@ -163,17 +163,6 @@ class MongoDBIO:
 
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
             if cat is not None:
-<<<<<<< HEAD
-                devices = Device.objects.raw({'category': cat.pk}).order_by([('_id', DESCENDING)]).skip((page - 1) * amount).limit(amount)
-            else:
-                devices = Device.objects.order_by([('_id', DESCENDING)]).skip((page - 1) * amount).limit(amount)
-
-        elif (page is None or page <= 0) and amount is None:
-            if cat is not None:
-                devices = Device.objects.raw({'category': cat.pk}).order_by([('_id', DESCENDING)])
-            else:
-                devices = Device.objects.order_by([('_id', DESCENDING)]).all()
-=======
                 devices = list(Device.objects \
                                .raw({'category': cat.pk}) \
                                .order_by([('_id', DESCENDING)]) \
@@ -194,7 +183,6 @@ class MongoDBIO:
                 devices = list(Device.objects \
                                .order_by([('_id', DESCENDING)]) \
                                .all())
->>>>>>> master
         else:
             return -1
 
@@ -215,22 +203,23 @@ class MongoDBIO:
                 r = l.to_son().to_dict()
                 r.pop('_id')
                 live.append(r)
-                
+
             for m in d.modules:
                 r = m.to_son().to_dict()
                 r.pop('_id')
                 modules.append(r)
-                
+
             d = d.to_son().to_dict()
             d["category"] = category
             d["static"] = static
             d["live"] = live
             d["modules"] = modules
-            
+
             d.pop("_id")
             devs.append(d)
 
         out["devices"] = devs
+        print(out)
         return out
 
     def get_device_by_category(self, category: str = "", page: int = None, amount: int = None):
