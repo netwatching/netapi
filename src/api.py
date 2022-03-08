@@ -13,7 +13,7 @@ from fastapi_jwt_auth.exceptions import AuthJWTException
 from starlette.middleware.cors import CORSMiddleware
 from src.models.models import oldDevice, User, Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, AggregatorByID, \
-    AddDataForDevices, RedisData, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
+    AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut
 from fastapi_jwt_auth import AuthJWT
 from decouple import config
@@ -250,7 +250,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     except pymongo.errors.DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Already exists")
 
-    return JSONResponse(status_code=201, content={"detail": "Created"})
+    return AddAggregatorOut(detail="Created")
 
 
 @app.get("/api/aggregator/{id}", response_model=AggregatorByID)
@@ -266,8 +266,20 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     id = ObjectId(id)
 
     db_result = mongo.get_aggregator_devices(id)
-    # TODO: serialize aggregator
-    return AggregatorByID()
+    try:
+        version = db_result.version
+    except AttributeError:
+        version = ""
+    try:
+        ip = db_result.ip
+    except AttributeError:
+        ip = ""
+    try:
+        devices = db_result.devices
+    except AttributeError:
+        devices = []
+
+    return AggregatorByID(version=version, ip=ip, devices=devices)
 
 
 @app.post("/api/aggregator/{id}/version", response_model=AggregatorVersionOut)
@@ -472,22 +484,6 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     return db.get_modules()
-
-
-# --- Redis --- #
-@app.post("/api/redis")  # TODO: rewrite @Tobi
-# async def redis(request: Request):
-async def redis(request: RedisData, authorize: AuthJWT = Depends()):
-    """
-    /redis - POST - aggregator sends all live-data variables
-    """
-    authorize.jwt_required()
-
-    mongo.redis_insert_live_data(request)
-    return JSONResponse(
-        status_code=200,
-        content={"detail": "Inserted"}
-    )
 
 # --- Exception Handling --- #
 @app.exception_handler(AuthJWTException)

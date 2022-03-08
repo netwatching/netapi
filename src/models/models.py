@@ -108,7 +108,6 @@ class DeviceByIdOut(BaseModel):
 
 
 class AggregatorByID(BaseModel):
-    token: str = "vCWgzSmypvIa2payLr3Ykbf07ZVfCuw9"
     version: str = "0.0.0.0"
     ip: str = "1.2.3.4"
     devices: list[Device]
