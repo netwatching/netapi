@@ -463,7 +463,7 @@ class MongoDBIO:
 
     async def thread_insertIntoDatabase(self):
         while True:
-            await asyncio.sleep(30 * 60)
+            await asyncio.sleep(10)
 
             for i in range(0, len(self.redis_indices)):
                 pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
@@ -490,8 +490,8 @@ class MongoDBIO:
 
                             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             event_time = str(score[0], "utf-8")
-                            if self.__is_float__(num=str(event_time)) is True:
-                                timestamp = datetime.fromtimestamp(score[0])
+                            if self.__is_float__(num=event_time) is True:
+                                timestamp = datetime.fromtimestamp(float(event_time))
                             elif isinstance(event_time, str):
                                 timestamp = datetime.strptime(event_time, '%Y-%m-%d %H:%M:%S')
 
@@ -504,5 +504,7 @@ class MongoDBIO:
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                     data = {timestamp: avg_score}
+                    print(data)
                     self.__handle_live_data__(device=device, key=type, input=data)
                 r.flushdb()
+            print("Redis thread successful")

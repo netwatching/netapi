@@ -19,7 +19,7 @@ from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginO
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
     AggregatorByID, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
-    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut
+    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -365,12 +365,9 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     authorize.jwt_required()
 
     success = mongo.add_data_for_devices(devices=request.devices, external_events=request.external_events)
-    # TODO: fix steiger mongo function
-    # File "C:\repos\netwatch\netapi\src\mongoDBIO.py", line 198, in add_data_for_devices
-    # self.__handle_static_data__(device=dev, key=static_key, input=static_data[static_key])
-    # TypeError: list indices must be integers or slices, not dict
-    if (isinstance(success, bool) is False and success is False) or (isinstance(success, int) and success == -1):
+    if (isinstance(success, bool) is True and success is False) or (isinstance(success, int) and success == -1):
         raise HTTPException(status_code=400, detail="Error occurred")
+    return AddDataForDeviceOut(detail="success")
 
 
 @app.get("/api/devices/{did}/alerts")  # TODO: steiger rewrite

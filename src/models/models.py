@@ -158,9 +158,12 @@ class AddCategoryOut(BaseModel):
     detail: str = "Success"
 
 
+class AddDataForDeviceOut(BaseModel):
+    detail: str = "Success"
+
+
 class GetAlertByIdOut(BaseModel):
     event: Event
-
 
 
 # --- Old Models for old DB --- #
