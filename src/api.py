@@ -365,10 +365,6 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     authorize.jwt_required()
 
     success = mongo.add_data_for_devices(devices=request.devices, external_events=request.external_events)
-    # TODO: fix steiger mongo function
-    # File "C:\repos\netwatch\netapi\src\mongoDBIO.py", line 198, in add_data_for_devices
-    # self.__handle_static_data__(device=dev, key=static_key, input=static_data[static_key])
-    # TypeError: list indices must be integers or slices, not dict
     if (isinstance(success, bool) is False and success is False) or (isinstance(success, int) and success == -1):
         raise HTTPException(status_code=400, detail="Error occurred")
 
