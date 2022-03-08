@@ -144,7 +144,6 @@ class MongoDBIO:
 
     def get_device_by_category(self, category: str = "", page: int = None, amount: int = None):
         cat = None
-        print(category)
         try:
             if category != "":
                 cat = Category.objects.get({'category': category})
@@ -152,7 +151,6 @@ class MongoDBIO:
             return False
         except Category.MultipleObjectsReturned:
             return -1
-        print(category)
 
         out = {}
         if cat is not None:
