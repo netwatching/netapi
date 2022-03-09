@@ -166,6 +166,14 @@ class GetAlertByIdOut(BaseModel):
     event: Event
 
 
+class GetAlertsByIdIn(BaseModel):
+    device_id: str
+    min_severity: Optional[int] = 0
+    severity: Optional[int] = None
+    page: Optional[int] = None
+    amount: Optional[int] = None
+
+
 # --- Old Models for old DB --- #
 
 class oldDevice(BaseModel):  # old device model, should be deleted

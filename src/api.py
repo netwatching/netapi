@@ -1,4 +1,5 @@
 import inspect
+import json
 import re
 from fastapi.routing import APIRoute
 from fastapi import FastAPI, Depends, Request, HTTPException
@@ -19,7 +20,8 @@ from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginO
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
     AggregatorByID, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
-    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut
+    DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
+    GetAlertsByIdIn
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -309,7 +311,7 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
 
 # --- DEVICES --- #
 @app.get("/api/devices/all")
-async def get_all_devices(
+async def get_devices_by_category_full(
         category: Optional[str] = "",
         page: Optional[int] = None,
         amount: Optional[int] = None,
@@ -328,7 +330,7 @@ async def get_all_devices(
 
 
 @app.get("/api/devices")
-async def get_all_devices(
+async def get_devices_by_category(
         category: Optional[str] = "",
         page: Optional[int] = None,
         amount: Optional[int] = None,
@@ -370,11 +372,11 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     return AddDataForDeviceOut(detail="success")
 
 
-@app.get("/api/devices/{did}/alerts")  # TODO: steiger rewrite
+@app.get("/api/devices/{device_id}/alerts")
 async def get_alerts_by_device(
-        did: int,
-        minSeverity: Optional[int] = 0,
-        severity: Optional[str] = None,
+        device_id: str,
+        min_severity: Optional[int] = None,
+        severity: Optional[int] = None,
         page: Optional[int] = None,
         amount: Optional[int] = None,
         authorize: AuthJWT = Depends()
@@ -384,20 +386,15 @@ async def get_alerts_by_device(
     """
     authorize.jwt_required()
 
-    out = {}
+    events = mongo.get_events(page=page,
+                              amount=amount,
+                              min_severity=min_severity,
+                              severity=severity,
+                              device_id=device_id)
 
-    out["page"] = page
-    out["amount"] = amount
-
-    if severity:
-        sevs = severity.split('_')
-        data = db.get_alerts_by_device_id_and_severity_time(did, sevs, page, amount)
-    else:
-        data = db.get_alerts_by_device_id(did, minSeverity, page, amount)
-
-    out["total"] = data[1]
-    out["alerts"] = data[0]
-    return out
+    if isinstance(events, bool) and events is False:
+        raise HTTPException(status_code=400, detail="Error occurred")
+    return JSONResponse(status_code=200, content=json.dumps(events))
 
 
 @app.post("/api/devices", response_model=AddDeviceOut)
@@ -439,10 +436,10 @@ async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends())
 
 
 # --- Alerts --- #
-@app.get("/api/alerts")  # TODO: steiger rewrite
+@app.get("/api/alerts")
 async def get_all_alerts(
-        minSeverity: Optional[int] = 0,
-        severity: Optional[str] = None,
+        min_severity: Optional[int] = None,
+        severity: Optional[int] = None,
         page: Optional[int] = None,
         amount: Optional[int] = None,
         authorize: AuthJWT = Depends()
@@ -452,20 +449,14 @@ async def get_all_alerts(
     """
     authorize.jwt_required()
 
-    out = {}
+    events = mongo.get_events(page=page,
+                              amount=amount,
+                              min_severity=min_severity,
+                              severity=severity)
 
-    out["page"] = page
-    out["amount"] = amount
-
-    if severity:
-        sevs = severity.split('_')
-        data = db.get_alerts_by_severity_type(sevs, page, amount)
-    else:
-        data = db.get_alerts_by_severity(minSeverity, page, amount)
-
-    out["total"] = data[1]
-    out["alerts"] = data[0]
-    return out
+    if isinstance(events, bool) and events is False:
+        raise HTTPException(status_code=400, detail="Error occurred")
+    return JSONResponse(status_code=200, content=json.dumps(events))
 
 
 @app.get("/api/alerts/{event_id}", response_model=GetAlertByIdOut)

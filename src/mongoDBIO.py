@@ -1,11 +1,14 @@
 from datetime import datetime
 import json
 
+import pymodm
 import redis
 from decouple import config
 from fastapi import HTTPException
 from pymodm import connection
 from pymongo import DESCENDING
+
+from bson import ObjectId
 
 from src.models.event import Event
 from src.models.aggregator import Aggregator
@@ -102,6 +105,7 @@ class MongoDBIO:
 
     def get_aggregator_devices(self, id):
         try:
+            id = ObjectId(id)
             ag = Aggregator.objects.get({'_id': id})
             return ag
         except Aggregator.DoesNotExist:
@@ -111,6 +115,7 @@ class MongoDBIO:
 
     def get_device_by_id(self, id: str):
         try:
+            id = ObjectId(id)
             device = Device.objects.get({'_id': id})
             return device
         except Device.DoesNotExist:
@@ -187,7 +192,6 @@ class MongoDBIO:
             return -1
 
         devs = []
-        category = ""
         static = []
         live = []
         modules = []
@@ -267,8 +271,6 @@ class MongoDBIO:
             return -1
 
         devs = []
-        category = ""
-        pk = ""
         for d in devices:
             category = d.category.category
 
@@ -380,6 +382,7 @@ class MongoDBIO:
 
     def set_aggregator_version(self, id, ver):
         try:
+            id = ObjectId(id)
             aggregator = Aggregator.objects.get({'_id': id})
         except Aggregator.DoesNotExist:
             return False
@@ -391,6 +394,7 @@ class MongoDBIO:
 
     def insert_aggregator_modules(self, modules, id):
         try:
+            id = ObjectId(id)
             aggregator = Aggregator.objects.get({'_id': id})
         except Device.DoesNotExist:
             return False
@@ -419,7 +423,7 @@ class MongoDBIO:
         return False
 
     def get_categories(self):
-        categories =  list(Category.objects.order_by([('_id', DESCENDING)]).all())
+        categories = list(Category.objects.order_by([('_id', DESCENDING)]).all())
 
         out = []
         for c in categories:
@@ -441,7 +445,151 @@ class MongoDBIO:
 
         return event
 
-        # --- Redis --- #
+    def get_events(self, amount: int = None, page: int = None, severity: int = None, min_severity: int = None,
+                   device_id: str = None):
+        if device_id is not None:
+            device_id = ObjectId(device_id)
+            total = Event.objects.raw({'device': device_id}).count()
+        else:
+            total = Event.objects.all().count()
+
+        if (amount is not None and amount <= 0) or (page is not None and page < 0) or (
+                severity is not None and severity < 0) or (min_severity is not None and min_severity < 0):
+            return False
+
+        if severity is not None and min_severity is not None:
+            severity = None
+
+        if severity is not None and severity > 10:
+            return False
+
+        if min_severity is not None and min_severity > 10:
+            return False
+
+        events = []
+        if amount is not None and page is not None:
+            if min_severity is not None:
+                if device_id is not None:
+                    events = list(
+                        Event.objects
+                        .raw({'device': device_id, "severity": {"$gte": min_severity}})
+                        .order_by([('_id', DESCENDING)])
+                        .skip((page - 1) * amount)
+                        .limit(amount)
+                        .values()
+                    )
+                else:
+                    events = list(
+                        Event.objects
+                        .raw({"severity": {"$gte": min_severity}})
+                        .order_by([('_id', DESCENDING)])
+                        .skip((page - 1) * amount)
+                        .limit(amount)
+                        .values()
+                    )
+            elif severity is not None:
+                if device_id is not None:
+                    events = list(
+                        Event.objects
+                        .raw({'device': device_id, "severity": severity})
+                        .order_by([('_id', DESCENDING)])
+                        .skip((page - 1) * amount)
+                        .limit(amount)
+                        .values()
+                    )
+                else:
+                    events = list(
+                        Event.objects
+                        .raw({"severity": severity})
+                        .order_by([('_id', DESCENDING)])
+                        .skip((page - 1) * amount)
+                        .limit(amount)
+                        .values()
+                    )
+            elif device_id is not None:
+                events = list(
+                    Event.objects
+                    .raw({'device': device_id})
+                    .order_by([('_id', DESCENDING)])
+                    .skip((page - 1) * amount)
+                    .limit(amount)
+                    .values()
+                )
+            else:
+                events = list(
+                    Event.objects
+                    .order_by([('_id', DESCENDING)])
+                    .skip((page - 1) * amount)
+                    .limit(amount)
+                    .values()
+                )
+        else:
+            if min_severity is not None:
+                if device_id is not None:
+                    events = list(
+                        Event.objects
+                        .raw({'device': device_id, "severity": {"$gte": min_severity}})
+                        .order_by([('_id', DESCENDING)])
+                        .values()
+                    )
+                else:
+                    events = list(
+                        Event.objects
+                        .raw({"severity": {"$gte": min_severity}})
+                        .order_by([('_id', DESCENDING)])
+                        .values()
+                    )
+            elif severity is not None:
+                if device_id is not None:
+                    events = list(
+                        Event.objects
+                        .raw({'device': device_id, "severity": severity})
+                        .order_by([('_id', DESCENDING)])
+                        .values()
+                    )
+                else:
+                    events = list(
+                        Event.objects
+                        .raw({"severity": severity})
+                        .order_by([('_id', DESCENDING)])
+                        .values()
+                    )
+            elif device_id is not None:
+                events = list(
+                    Event.objects
+                    .raw({'device': device_id})
+                    .order_by([('_id', DESCENDING)])
+                    .values()
+                )
+            else:
+                events = list(
+                    Event.objects
+                    .order_by([('_id', DESCENDING)])
+                    .all()
+                    .values()
+                )
+
+        events_cleansed = []
+        for event in events:
+
+            event["id"] = str(event.pop("_id"))
+            if "_cls" in event:
+                event.pop("_cls")
+            event["timestamp"] = str(event["timestamp"])
+            event["device_id"] = str(event.pop("device"))
+
+            events_cleansed.append(event)
+
+        out = {
+            "page": page,
+            "amount": amount,
+            "total": total,
+            "alerts": events_cleansed
+        }
+
+        return out
+
+    # --- Redis --- #
 
     def redis_insert_live_data(self, device: Device, live_data: dict):
         hostname = device.hostname
@@ -463,7 +611,7 @@ class MongoDBIO:
 
     async def thread_insertIntoDatabase(self):
         while True:
-            await asyncio.sleep(10)
+            await asyncio.sleep(30 * 60)
 
             for i in range(0, len(self.redis_indices)):
                 pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
