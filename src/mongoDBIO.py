@@ -147,6 +147,17 @@ class MongoDBIO:
         else:
             return True
 
+    def get_category_by_id(self, id: str):
+        try:
+            id = ObjectId(id)
+            category = Category.objects.get({'_id': id})
+            return category
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return -1
+
+
     def get_device_by_category_full(self, category: str = "", page: int = None, amount: int = None):
         cat = None
         try:
@@ -251,37 +262,45 @@ class MongoDBIO:
                                .raw({'category': cat.pk}) \
                                .order_by([('_id', DESCENDING)]) \
                                .skip((page - 1) * amount) \
-                               .limit(amount))
+                               .limit(amount)
+                               .values())
             else:
                 devices = list(Device.objects \
                                .order_by([('_id', DESCENDING)]) \
                                .skip((page - 1) * amount) \
-                               .limit(amount))
+                               .limit(amount)
+                               .values())
 
         elif (page is None or page <= 0) and amount is None:
             if cat is not None:
                 devices = list(Device.objects \
                                .raw({'category': cat.pk}) \
-                               .order_by([('_id', DESCENDING)]))
+                               .order_by([('_id', DESCENDING)])
+                               .values())
             else:
                 devices = list(Device.objects \
                                .order_by([('_id', DESCENDING)]) \
-                               .all())
+                               .all()
+                               .values())
         else:
             return -1
 
         devs = []
         for d in devices:
-            category = d.category.category
 
-            pk = str(d.pk)
+            category = self.get_category_by_id(d["category"])
+            category = category.category
 
-            d = d.to_son().to_dict()
-            d["_id"] = pk
+            d["id"] = str(d.pop("_id"))
+            if "_cls" in d:
+                d.pop("_cls")
             d["category"] = category
-            d["static"] = []
-            d["live"] = []
-            d["modules"] = []
+            if "static" in d:
+                d.pop("static")
+            if "live" in d:
+                d.pop("live")
+            if "modules" in d:
+                d.pop("modules")
 
             devs.append(d)
 
@@ -445,13 +464,18 @@ class MongoDBIO:
 
         return event
 
-    def get_events(self, amount: int = None, page: int = None, severity: int = None, min_severity: int = None,
-                   device_id: str = None):
+    def get_event_count(self, device_id: str = None):
         if device_id is not None:
             device_id = ObjectId(device_id)
             total = Event.objects.raw({'device': device_id}).count()
         else:
             total = Event.objects.all().count()
+        return total
+
+    def get_events(self, amount: int = None, page: int = None, severity: int = None, min_severity: int = None,
+                   device_id: str = None):
+        if device_id is not None:
+            device_id = ObjectId(device_id)
 
         if (amount is not None and amount <= 0) or (page is not None and page < 0) or (
                 severity is not None and severity < 0) or (min_severity is not None and min_severity < 0):
@@ -580,14 +604,14 @@ class MongoDBIO:
 
             events_cleansed.append(event)
 
-        out = {
-            "page": page,
-            "amount": amount,
-            "total": total,
-            "alerts": events_cleansed
-        }
+        return events_cleansed
 
-        return out
+    def checkInt(self, input: str):
+        try:
+            int(input)
+            return True
+        except ValueError:
+            return False
 
     # --- Redis --- #
 

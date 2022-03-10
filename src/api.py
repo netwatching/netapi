@@ -376,7 +376,7 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
 async def get_alerts_by_device(
         device_id: str,
         min_severity: Optional[int] = None,
-        severity: Optional[int] = None,
+        severity: Optional[str] = None,
         page: Optional[int] = None,
         amount: Optional[int] = None,
         authorize: AuthJWT = Depends()
@@ -386,15 +386,47 @@ async def get_alerts_by_device(
     """
     authorize.jwt_required()
 
-    events = mongo.get_events(page=page,
-                              amount=amount,
-                              min_severity=min_severity,
-                              severity=severity,
-                              device_id=device_id)
+    events = []
+    if severity:
+        severities = severity.split('_')
+
+        for severity in severities:
+            if severity is not None and mongo.checkInt(severity):
+                severity = int(severity)
+            else:
+                severity = None
+
+            current_events = mongo.get_events(page=page,
+                                              amount=amount,
+                                              min_severity=min_severity,
+                                              severity=severity,
+                                              device_id=device_id)
+            if isinstance(current_events, bool) is False and current_events is not False:
+                events.append(current_events)
+    else:
+        if severity is not None and mongo.checkInt(severity):
+            severity = int(severity)
+        else:
+            severity = None
+
+        current_events = mongo.get_events(page=page,
+                                          amount=amount,
+                                          min_severity=min_severity,
+                                          severity=severity,
+                                          device_id=device_id)
+        if isinstance(current_events, bool) is False and current_events is not False:
+            events.append(current_events)
+
+    out = {
+        "page": page,
+        "amount": amount,
+        "total": mongo.get_event_count(device_id=device_id),
+        "alerts": events
+    }
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-    return JSONResponse(status_code=200, content=json.dumps(events))
+    return JSONResponse(status_code=200, content=json.dumps(out))
 
 
 @app.post("/api/devices", response_model=AddDeviceOut)
