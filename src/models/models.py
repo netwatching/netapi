@@ -104,7 +104,7 @@ class DeviceByIdIn(BaseModel):
 
 
 class DeviceByIdOut(BaseModel):
-    device: Device
+    device: dict
 
 
 class AggregatorByID(BaseModel):
@@ -163,7 +163,7 @@ class AddDataForDeviceOut(BaseModel):
 
 
 class GetAlertByIdOut(BaseModel):
-    event: Event
+    event: dict
 
 
 class GetAlertsByIdIn(BaseModel):

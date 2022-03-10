@@ -38,8 +38,16 @@ class MongoDBIO:
         return modules
 
     def get_types(self):
-        types = list(Type.objects.order_by([['type', DESCENDING]]).all())
-        return types
+        types = Type.objects.order_by([['type', DESCENDING]]).all()
+        typesDict = []
+        
+        for t in types:
+            t = t.to_son().to_dict()
+            t.pop("_id")
+            t["config"] = json.loads(self.crypt.decrypt(t["config"], config("cryptokey")))
+            typesDict.append(t)
+        print(typesDict)
+        return typesDict
 
     def add_category(self, category: str):
         try:
@@ -121,7 +129,35 @@ class MongoDBIO:
         try:
             id = ObjectId(id)
             device = Device.objects.get({'_id': id})
-            return device
+            static = []
+            live = []
+            modules = []
+
+            category = device.category.category
+
+            for s in device.static:
+                r = s.to_son().to_dict()
+                r.pop('_id')
+                static.append(r)
+
+            for l in device.live:
+                r = l.to_son().to_dict()
+                r.pop('_id')
+                live.append(r)
+
+            for m in device.modules:
+                r = m.to_son().to_dict()
+                r.pop('_id')
+                modules.append(r)
+
+            d = device.to_son().to_dict()
+            d["category"] = category
+            d["static"] = static
+            d["live"] = live
+            d["modules"] = modules
+
+            d.pop("_id")
+            return d
         except Device.DoesNotExist:
             return False
         except Device.MultipleObjectsReturned:
@@ -433,7 +469,7 @@ class MongoDBIO:
         aggregator.types = types
         return (aggregator.save())
 
-    def add_device_web(self, device, category, ip):
+    def add_device_web(self, device, category, ip = "1.1.1.1"):
         try:
             cat = Category.objects.get({'category': category})
         except Category.DoesNotExist:
@@ -461,6 +497,16 @@ class MongoDBIO:
         try:
             event_id = ObjectId(event_id)
             event = Event.objects.get({'_id': event_id})
+
+            host = event.device.hostname
+
+            event = event.to_son().to_dict()
+            event["device"] = host
+            event.pop("_id")
+
+            print(event)
+
+            return event
         except Category.DoesNotExist:
             return False
         except Category.MultipleObjectsReturned:
