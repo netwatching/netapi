@@ -163,7 +163,7 @@ class AddDataForDeviceOut(BaseModel):
 
 
 class GetAlertByIdOut(BaseModel):
-    event: Event
+    event: dict
 
 
 class GetAlertsByIdIn(BaseModel):

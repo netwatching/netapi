@@ -519,11 +519,11 @@ async def get_all_alerts(
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-    return JSONResponse(status_code=200, content=json.dumps(out))
+    return JSONResponse(status_code=200, content=out)
 
 
 @app.get("/api/alerts/{event_id}", response_model=GetAlertByIdOut)
-async def get_alert_by_id(event_id: int, authorize: AuthJWT = Depends()):
+async def get_alert_by_id(event_id: str, authorize: AuthJWT = Depends()):
     """
     /alerts/{aid} - GET - get specific alert by id
     """
@@ -537,14 +537,16 @@ async def get_alert_by_id(event_id: int, authorize: AuthJWT = Depends()):
 
 
 # --- Modules --- #
-@app.get("/api/modules")  # TODO: steiger rewrite de froge is welche modules? modules modules oder module types
+@app.get("/api/modules")
 async def get_all_modules(authorize: AuthJWT = Depends()):
     """
     /modules - GET - get all modules
     """
     authorize.jwt_required()
 
-    return JSONResponse(status_code=200, content=json.dumps(mongo.get_types()))
+    query = mongo.get_types()
+
+    return JSONResponse(status_code=200, content=query)
 
 # --- Config --- #
 
