@@ -14,6 +14,7 @@ from src.models.event import Event
 from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
 from src.models.device import Device, Category, Data
+from src.models.node import Link, Node, LinkJson, NodeJson, TreeJson, Connection
 
 from src.crypt import Crypt
 
@@ -40,7 +41,7 @@ class MongoDBIO:
     def get_types(self):
         types = Type.objects.order_by([['type', DESCENDING]]).all()
         typesDict = []
-        
+
         for t in types:
             t = t.to_son().to_dict()
             t.pop("_id")
@@ -196,7 +197,6 @@ class MongoDBIO:
             return False
         except Category.MultipleObjectsReturned:
             return -1
-
 
     def get_device_by_category_full(self, category: str = "", page: int = None, amount: int = None):
         cat = None
@@ -469,7 +469,7 @@ class MongoDBIO:
         aggregator.types = types
         return (aggregator.save())
 
-    def add_device_web(self, device, category, ip = "1.1.1.1"):
+    def add_device_web(self, device, category, ip="1.1.1.1"):
         try:
             cat = Category.objects.get({'category': category})
         except Category.DoesNotExist:
@@ -512,8 +512,6 @@ class MongoDBIO:
         except Category.MultipleObjectsReturned:
             return -1
 
-        return event
-
     def get_event_count(self, device_id: str = None):
         if device_id is not None:
             device_id = ObjectId(device_id)
@@ -540,107 +538,106 @@ class MongoDBIO:
         if min_severity is not None and min_severity > 10:
             return False
 
-        events = []
         if amount is not None and page is not None:
             if min_severity is not None:
                 if device_id is not None:
                     events = list(
                         Event.objects
-                        .raw({'device': device_id, "severity": {"$gte": min_severity}})
-                        .order_by([('_id', DESCENDING)])
-                        .skip((page - 1) * amount)
-                        .limit(amount)
-                        .values()
+                            .raw({'device': device_id, "severity": {"$gte": min_severity}})
+                            .order_by([('_id', DESCENDING)])
+                            .skip((page - 1) * amount)
+                            .limit(amount)
+                            .values()
                     )
                 else:
                     events = list(
                         Event.objects
-                        .raw({"severity": {"$gte": min_severity}})
-                        .order_by([('_id', DESCENDING)])
-                        .skip((page - 1) * amount)
-                        .limit(amount)
-                        .values()
+                            .raw({"severity": {"$gte": min_severity}})
+                            .order_by([('_id', DESCENDING)])
+                            .skip((page - 1) * amount)
+                            .limit(amount)
+                            .values()
                     )
             elif severity is not None:
                 if device_id is not None:
                     events = list(
                         Event.objects
-                        .raw({'device': device_id, "severity": severity})
-                        .order_by([('_id', DESCENDING)])
-                        .skip((page - 1) * amount)
-                        .limit(amount)
-                        .values()
+                            .raw({'device': device_id, "severity": severity})
+                            .order_by([('_id', DESCENDING)])
+                            .skip((page - 1) * amount)
+                            .limit(amount)
+                            .values()
                     )
                 else:
                     events = list(
                         Event.objects
-                        .raw({"severity": severity})
-                        .order_by([('_id', DESCENDING)])
-                        .skip((page - 1) * amount)
-                        .limit(amount)
-                        .values()
+                            .raw({"severity": severity})
+                            .order_by([('_id', DESCENDING)])
+                            .skip((page - 1) * amount)
+                            .limit(amount)
+                            .values()
                     )
             elif device_id is not None:
                 events = list(
                     Event.objects
-                    .raw({'device': device_id})
-                    .order_by([('_id', DESCENDING)])
-                    .skip((page - 1) * amount)
-                    .limit(amount)
-                    .values()
+                        .raw({'device': device_id})
+                        .order_by([('_id', DESCENDING)])
+                        .skip((page - 1) * amount)
+                        .limit(amount)
+                        .values()
                 )
             else:
                 events = list(
                     Event.objects
-                    .order_by([('_id', DESCENDING)])
-                    .skip((page - 1) * amount)
-                    .limit(amount)
-                    .values()
+                        .order_by([('_id', DESCENDING)])
+                        .skip((page - 1) * amount)
+                        .limit(amount)
+                        .values()
                 )
         else:
             if min_severity is not None:
                 if device_id is not None:
                     events = list(
                         Event.objects
-                        .raw({'device': device_id, "severity": {"$gte": min_severity}})
-                        .order_by([('_id', DESCENDING)])
-                        .values()
+                            .raw({'device': device_id, "severity": {"$gte": min_severity}})
+                            .order_by([('_id', DESCENDING)])
+                            .values()
                     )
                 else:
                     events = list(
                         Event.objects
-                        .raw({"severity": {"$gte": min_severity}})
-                        .order_by([('_id', DESCENDING)])
-                        .values()
+                            .raw({"severity": {"$gte": min_severity}})
+                            .order_by([('_id', DESCENDING)])
+                            .values()
                     )
             elif severity is not None:
                 if device_id is not None:
                     events = list(
                         Event.objects
-                        .raw({'device': device_id, "severity": severity})
-                        .order_by([('_id', DESCENDING)])
-                        .values()
+                            .raw({'device': device_id, "severity": severity})
+                            .order_by([('_id', DESCENDING)])
+                            .values()
                     )
                 else:
                     events = list(
                         Event.objects
-                        .raw({"severity": severity})
-                        .order_by([('_id', DESCENDING)])
-                        .values()
+                            .raw({"severity": severity})
+                            .order_by([('_id', DESCENDING)])
+                            .values()
                     )
             elif device_id is not None:
                 events = list(
                     Event.objects
-                    .raw({'device': device_id})
-                    .order_by([('_id', DESCENDING)])
-                    .values()
+                        .raw({'device': device_id})
+                        .order_by([('_id', DESCENDING)])
+                        .values()
                 )
             else:
                 events = list(
                     Event.objects
-                    .order_by([('_id', DESCENDING)])
-                    .all()
-                    .values()
+                        .order_by([('_id', DESCENDING)])
+                        .all()
+                        .values()
                 )
 
         events_cleansed = []
@@ -663,6 +660,51 @@ class MongoDBIO:
         except ValueError:
             return False
 
+    def __check_if_connection_exists__(self, connection: Connection):
+        connection = connection.to_son().to_dict()
+        count = Connection.objects.raw(
+            {
+                "$or": [
+                    {
+                        "source": ObjectId(connection["source"]),
+                        "target": ObjectId(connection["target"])
+                    },
+                    {
+                        "source": ObjectId(connection["target"]),
+                        "target": ObjectId(connection["source"])
+                    }
+                ]
+            }
+        ).count()
+
+        if count >= 1:
+            return True
+        return False
+
+    def __create_connection__(self, source: Link, target: Link):
+        if source.mac == target.remote_mac and source.remote_mac == target.mac:
+            connection = Connection(source=source, target=target)
+            if self.__check_if_connection_exists__(connection=connection) is False:
+                connection = connection.save()
+                return connection
+        return None
+
+    def get_tree(self):
+        connections = Connection.objects.all()
+
+        links = []
+        nodes = []
+        for connection in connections:
+            source_node = connection.source.node
+            target_node = connection.target.node
+
+            links.append(LinkJson(source=source_node.hostname, target=target_node.hostname))
+            nodes.append(NodeJson(id=source_node.hostname))
+            nodes.append(NodeJson(id=target_node.hostname))
+
+        tree = TreeJson(links=links, nodes=nodes)
+        return tree
+
     # --- Redis --- #
 
     def redis_insert_live_data(self, device: Device, live_data: dict):
@@ -674,7 +716,7 @@ class MongoDBIO:
             if database_index != -1:
                 self.redis_insert(hostname, live_data[key], database_index)
 
-    def redis_insert(self, hostname: str, values: list, database_index: int):
+    def redis_insert(self, hostname: str, values: dict, database_index: int):
         pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
                                     password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
                                     username="default",

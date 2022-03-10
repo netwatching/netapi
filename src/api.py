@@ -15,6 +15,7 @@ import humanize
 import pymongo.errors
 from bson import ObjectId
 
+from src.models.node import TreeJson
 from src.mongoDBIO import MongoDBIO
 from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
@@ -535,6 +536,15 @@ async def get_alert_by_id(event_id: str, authorize: AuthJWT = Depends()):
         return GetAlertByIdOut(event=event)
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
+
+@app.get("/api/tree", response_model=TreeJson)
+async def get_tree(authorize: AuthJWT = Depends()):
+    """
+    /tree/ - GET - get tree view
+    """
+    authorize.jwt_required()
+
+    return mongo.get_tree()
 
 # --- Modules --- #
 @app.get("/api/modules")
