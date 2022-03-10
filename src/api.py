@@ -349,13 +349,13 @@ async def get_devices_by_category(
 
 
 @app.get("/api/devices/{id}", response_model=DeviceByIdOut)
-async def device_by_id(request: DeviceByIdIn, authorize: AuthJWT = Depends()):
+async def device_by_id(id: str, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns device infos with specified id
     """
     authorize.jwt_required()
 
-    device = mongo.get_device_by_id(request.id)
+    device = mongo.get_device_by_id(id)
     return DeviceByIdOut(device=device)
 
 
@@ -426,7 +426,7 @@ async def get_alerts_by_device(
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-    return JSONResponse(status_code=200, content=json.dumps(out))
+    return JSONResponse(status_code=200, content=out)
 
 
 @app.post("/api/devices", response_model=AddDeviceOut)

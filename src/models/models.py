@@ -104,7 +104,7 @@ class DeviceByIdIn(BaseModel):
 
 
 class DeviceByIdOut(BaseModel):
-    device: Device
+    device: dict
 
 
 class AggregatorByID(BaseModel):

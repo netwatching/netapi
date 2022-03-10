@@ -121,7 +121,35 @@ class MongoDBIO:
         try:
             id = ObjectId(id)
             device = Device.objects.get({'_id': id})
-            return device
+            static = []
+            live = []
+            modules = []
+
+            category = device.category.category
+
+            for s in device.static:
+                r = s.to_son().to_dict()
+                r.pop('_id')
+                static.append(r)
+
+            for l in device.live:
+                r = l.to_son().to_dict()
+                r.pop('_id')
+                live.append(r)
+
+            for m in device.modules:
+                r = m.to_son().to_dict()
+                r.pop('_id')
+                modules.append(r)
+
+            d = device.to_son().to_dict()
+            d["category"] = category
+            d["static"] = static
+            d["live"] = live
+            d["modules"] = modules
+
+            d.pop("_id")
+            return d
         except Device.DoesNotExist:
             return False
         except Device.MultipleObjectsReturned:
