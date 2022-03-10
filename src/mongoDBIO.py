@@ -37,6 +37,10 @@ class MongoDBIO:
         modules = list(Module.objects.order_by([['type', DESCENDING]]).all())
         return modules
 
+    def get_types(self):
+        types = list(Type.objects.order_by([['type', DESCENDING]]).all())
+        return types
+
     def add_category(self, category: str):
         try:
             category = Category(category=category).save()

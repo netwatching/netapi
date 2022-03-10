@@ -30,3 +30,6 @@ class Device(MongoModel):
         indexes = [
             IndexModel([('hostname', DESCENDING)], unique=True)
         ]
+
+
+
