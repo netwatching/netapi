@@ -717,9 +717,10 @@ class MongoDBIO:
                 self.redis_insert(hostname, live_data[key], database_index)
 
     def redis_insert(self, hostname: str, values: dict, database_index: int):
-        pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
-                                    password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
-                                    username="default",
+        pool = redis.ConnectionPool(host=str(config("rDBurl")),
+                                    port=str(config("rDBport")),
+                                    password=str(config("rDBpassword")),
+                                    username=str(config("rDBusername")),
                                     db=database_index)
         r = redis.Redis(connection_pool=pool)
         r.zadd(hostname, values)
@@ -730,9 +731,10 @@ class MongoDBIO:
             await asyncio.sleep(30 * 60)
 
             for i in range(0, len(self.redis_indices)):
-                pool = redis.ConnectionPool(host="palguin.htl-vil.local", port="6379",
-                                            password="WVFz.S9U:q4Y`]DGq5;2%7[H/t/WRymGR[r)@uA2mfq=ULvfcssHy5ef9HV",
-                                            username="default",
+                pool = redis.ConnectionPool(host=str(config("rDBurl")),
+                                            port=str(config("rDBport")),
+                                            password=str(config("rDBpassword")),
+                                            username=str(config("rDBusername")),
                                             db=i)
                 r = redis.Redis(connection_pool=pool)
 
