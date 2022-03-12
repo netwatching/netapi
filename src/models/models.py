@@ -174,6 +174,10 @@ class GetAlertsByIdIn(BaseModel):
     amount: Optional[int] = None
 
 
+class SetConfig(BaseModel):
+    config: list[Module]
+
+
 # --- Old Models for old DB --- #
 
 class oldDevice(BaseModel):  # old device model, should be deleted

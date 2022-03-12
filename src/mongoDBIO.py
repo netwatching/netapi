@@ -491,6 +491,49 @@ class MongoDBIO:
             return Device(hostname=device, category=cat.pk, ip=ip).save()
         return False
 
+    def get_device_config(self, id):
+        try:
+            dev = Device.objects.get({'_id', id})
+            ag = Aggregator.objects.get({'devices': id})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+        except Aggregator.DoesNotExist:
+            return False
+        except Aggregator.MultipleObjectsReturned:
+            return -1
+
+        config = []
+
+        for t in ag.types:
+            for m in dev.modules:
+                if t.type == m.type:
+                    t.type.config = json.loads(self.crypt.decrypt(t.type.config, config("cryptokey"))).update(json.loads(self.crypt.decrypt(m.type.config, config("7C1aGDU8ym9UudJXfNI01exYvfriT6RD"))))
+            config.append(t.type)
+
+        return config
+
+    def set_device_config(self, id, config):
+        try:
+            dev = Device.objects.get({'_id', id})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
+        modules = []
+
+        for c in config:
+            m = Module(type=c.type, config=self.crypt.decrypt(json.dumps(c.config), config("cryptokey"))).save
+            modules.append(m)
+        dev.modules = modules
+        dev.save()
+        return
+
+
+        return config
+
     def get_categories(self):
         categories = list(Category.objects.order_by([('_id', DESCENDING)]).all())
 
