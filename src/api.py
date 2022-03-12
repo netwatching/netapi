@@ -207,7 +207,7 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
 
 
 @app.post("/api/aggregator-refresh", response_model=ServiceLoginOut)
-async def aggregator_login(authorize: AuthJWT = Depends()):
+async def aggregator_refresh(authorize: AuthJWT = Depends()):
     """
     /aggregator-login - POST - aggregator login with token
     """

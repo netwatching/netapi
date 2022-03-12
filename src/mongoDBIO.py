@@ -14,7 +14,7 @@ from src.models.event import Event
 from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
 from src.models.device import Device, Category, Data
-from src.models.node import Link, Node, LinkJson, NodeJson, TreeJson, Connection
+from src.models.node import Link, LinkJson, NodeJson, TreeJson, Connection, Node
 
 from src.crypt import Crypt
 
@@ -351,28 +351,38 @@ class MongoDBIO:
         category = self.get_category_by_category("New")
 
         for device in devices:
+            if "name" not in device:
+                continue
+
             allowed = True
             dev = self.get_device_by_hostname(hostname=device["name"])
             if dev is None or (isinstance(dev, int) and dev == -1):
                 allowed = False
 
             if isinstance(dev, bool) and dev is False:
-                ip = None
                 if "ip" in device:
                     ip = device["ip"]
-                dev = self.add_device(hostname=device["name"], category=category, ip=ip)
+                    dev = self.add_device(hostname=device["name"], category=category, ip=ip)
+                else:
+                    dev = self.add_device(hostname=device["name"], category=category)
 
             if allowed is True:
-                static_data = device["static_data"]
-                for static_key in static_data:
-                    self.__handle_static_data__(device=dev, key=static_key,
-                                                input=self.__clean_dictionary__(static_data[static_key]))
+                if "static_data" in device:
+                    static_data = device["static_data"]
+                    for static_key in static_data:
+                        if static_key == "neighbors":
+                            self.__handle_lldp_data__(links=static_data[static_key], device=device)
+                        else:
+                            self.__handle_static_data__(device=dev, key=static_key,
+                                                        input=self.__clean_dictionary__(static_data[static_key]))
 
-                live_data = device["live_data"]
-                self.redis_insert_live_data(device=dev, live_data=live_data)
+                if "live_data" in device:
+                    live_data = device["live_data"]
+                    self.redis_insert_live_data(device=dev, live_data=live_data)
 
-                events = device["events"]
-                self.__handle_events__(device=dev, events=events)
+                if "events" in device:
+                    events = device["events"]
+                    self.__handle_events__(device=dev, events=events)
 
         for hostname in external_events:
             allowed = True
@@ -426,16 +436,16 @@ class MongoDBIO:
     def __clean_dictionary__(self, dict: dict):
         new_dict = {}
         for key in dict:
-            if isinstance(key, str):
-                new_key = key.replace("__", ".")
-                new_dict[new_key.replace(".", "__")] = dict[key]
+            if isinstance(key, str) and "." in key:
+                new_key = key.replace(".", "___")
+                new_dict[new_key] = dict[key]
         return new_dict
 
     def __normalize_dictionary__(self, dict: dict):
         new_dict = {}
         for key in dict:
-            if isinstance(key, str):
-                new_key = key.replace("__", ".")
+            if isinstance(key, str) and "___" in key:
+                new_key = key.replace("___", ".")
                 new_dict[new_key] = dict[key]
         return new_dict
 
@@ -681,13 +691,28 @@ class MongoDBIO:
             return True
         return False
 
-    def __create_connection__(self, source: Link, target: Link):
-        if source.mac == target.remote_mac and source.remote_mac == target.mac:
-            connection = Connection(source=source, target=target)
-            if self.__check_if_connection_exists__(connection=connection) is False:
-                connection = connection.save()
-                return connection
-        return None
+    def __create_connections__(self, source: Link):
+        try:
+            target = Link.objects.get(
+                {
+                    "mac": {
+                        "$regex": f"^{source.remote_mac}$",
+                        "$options": "i"
+                    },
+                    "remote_mac": {
+                        "$regex": f"^{source.mac}$",
+                        "$options": "i"
+                    }
+                }
+            )
+        except Link.DoesNotExist:
+            return
+        except Link.MultipleObjectsReturned:
+            return
+
+        connection = Connection(source=source, target=target)
+        if self.__check_if_connection_exists__(connection=connection) is False:
+            connection.save()
 
     def get_tree(self):
         connections = Connection.objects.all()
@@ -695,15 +720,105 @@ class MongoDBIO:
         links = []
         nodes = []
         for connection in connections:
-            source_node = connection.source.node
-            target_node = connection.target.node
+            source_link = connection.source
+            source_node = source_link.node
+            target_link = connection.target
+            target_node = target_link.node
 
-            links.append(LinkJson(source=source_node.hostname, target=target_node.hostname))
-            nodes.append(NodeJson(id=source_node.hostname))
-            nodes.append(NodeJson(id=target_node.hostname))
+            links.append(
+                LinkJson(
+                    source=source_node.hostname,
+                    target=target_node.hostname,
+                    source_mac=source_link.mac,
+                    source_description=source_link.description,
+                    target_mac=target_link.mac,
+                    target_description=target_link.description
+                )
+            )
+            if hasattr(source_node, "ip"):
+                source_ip = source_node.ip
+            else:
+                source_ip = None
+
+            if hasattr(target_node, "ip"):
+                target_ip = target_node.ip
+            else:
+                target_ip = None
+
+            nodes.append(NodeJson(id=source_node.hostname, ip=source_ip))
+            nodes.append(NodeJson(id=target_node.hostname, ip=target_ip))
 
         tree = TreeJson(links=links, nodes=nodes)
         return tree
+
+    def __get_node__(self, ip: str = None, hostname: str = None):
+        if ip and hostname:
+            query = {
+                "$or": [
+                    {
+                        "ip": ip
+                    },
+                    {
+                        "hostname": hostname
+                    }
+                ]
+            }
+        elif ip is None:
+            query = {"hostname": hostname}
+        else:
+            return
+
+        try:
+            node = Node.objects.get(query)
+            return node
+        except Node.DoesNotExist:
+            return None
+        except Node.MultipleObjectsReturned:
+            return None
+
+    def __handle_lldp_data__(self, links: dict, device: dict):
+        hostname = device["name"]
+        ip = None
+        if "ip" in device:
+            ip = device["ip"]
+
+        node = self.__get_node__(ip=ip, hostname=hostname)
+
+        if node is None:
+            if ip is None and hostname:
+                node = Node(hostname=hostname).save()
+            else:
+                node = Node(hostname=hostname, ip=ip).save()
+        else:
+            Link.objects.raw(
+                {
+                    "node": node.pk
+                }
+            ).delete()
+
+        new_links = []
+        for link_key in links:
+            link = links[link_key][0]
+            if "local_mac" in link:
+                mac = link["local_mac"]
+            else:
+                continue
+
+            if "local_port" in link:
+                description = link["local_port"]
+            else:
+                continue
+
+            if "remote_chassis_id" in link:
+                remote_mac = link["remote_chassis_id"]
+            else:
+                remote_mac = None
+
+            new_link = Link(mac=mac, description=description, remote_mac=remote_mac, node=node).save()
+            new_links.append(new_link)
+
+        for new_link in new_links:
+            self.__create_connections__(new_link)
 
     # --- Redis --- #
 
