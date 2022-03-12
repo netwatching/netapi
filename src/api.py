@@ -19,7 +19,7 @@ from src.models.node import TreeJson
 from src.mongoDBIO import MongoDBIO
 from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
-    AggregatorByID, \
+    AggregatorByID, SetConfig, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
     GetAlertsByIdIn
@@ -433,13 +433,37 @@ async def get_alerts_by_device(
 @app.post("/api/devices", response_model=AddDeviceOut)
 async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
     """
-    /devices/add - GET - adds a new device to the DB
+    /devices - POST - adds a new device to the DB
     """
     authorize.jwt_required()
 
     if mongo.add_device_web(request.device, request.category, request.ip):
         return AddDeviceOut(detail="success")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
+
+
+@app.get("/api/devices/{id}/config")
+async def add_device(id: str = None, authorize: AuthJWT = Depends()):
+    """
+    /devices/{id}/config - GET - gets the configs of an device
+    """
+    authorize.jwt_required()
+
+    if id:
+        id = ObjectId(id)
+        return mongo.get_device_config(id)
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
+
+
+@app.post("/api/devices/{id}/config")
+async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()):
+    """
+    /devices/{id}/config - POST - adds a new device config to the DB
+    """
+    authorize.jwt_required()
+
+    return mongo.set_device_config(id, request.config)
+    # raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- Category --- #
