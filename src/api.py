@@ -431,7 +431,7 @@ async def get_alerts_by_device(
                                               severity=severity,
                                               device_id=device_id)
             if isinstance(current_events, bool) is False and current_events is not False:
-                events.append(current_events)
+                events = current_events
     else:
         if severity is not None and mongo.checkInt(severity):
             severity = int(severity)
@@ -444,7 +444,7 @@ async def get_alerts_by_device(
                                           severity=severity,
                                           device_id=device_id)
         if isinstance(current_events, bool) is False and current_events is not False:
-            events.append(current_events)
+            events = current_events
 
     out = {
         "page": page,
@@ -549,7 +549,7 @@ async def get_all_alerts(
                                               min_severity=min_severity,
                                               severity=severity)
             if isinstance(current_events, bool) is False and current_events is not False:
-                events.append(current_events)
+                events = current_events
     else:
         if severity is not None and mongo.checkInt(severity):
             severity = int(severity)
@@ -561,7 +561,7 @@ async def get_all_alerts(
                                           min_severity=min_severity,
                                           severity=severity)
         if isinstance(current_events, bool) is False and current_events is not False:
-            events.append(current_events)
+            events = current_events
 
     out = {
         "page": page,
@@ -584,7 +584,7 @@ async def get_alert_by_id(event_id: str, authorize: AuthJWT = Depends()):
 
     event = mongo.get_event_by_id(event_id)
 
-    if event:
+    if isinstance(event, dict) is True:
         return GetAlertByIdOut(event=event)
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 

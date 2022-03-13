@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 
 import pymodm
+import pymongo.errors
 import redis
 from decouple import config
 from fastapi import HTTPException
@@ -138,6 +139,15 @@ class MongoDBIO:
         except Aggregator.DoesNotExist:
             return False
         except Aggregator.MultipleObjectsReturned:
+            return -1
+
+    def get_hostname_from_device_id(self, id: str):
+        try:
+            device = list(Device.objects.raw({"_id": ObjectId(id)}).only("hostname").all().values())
+            return device[0]["hostname"]
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
             return -1
 
     def get_device_by_id(self, id: str):
@@ -579,19 +589,22 @@ class MongoDBIO:
             event_id = ObjectId(event_id)
             event = Event.objects.get({'_id': event_id})
 
-            host = event.device.hostname
+            device = event.device
+            hostname = device.hostname
 
             event = event.to_son().to_dict()
-            event["device"] = host
-            event.pop("_id")
-
-            print(event)
+            event["device_id"] = str(device.pk)
+            event["device"] = hostname
+            event["id"] = str(event.pop("_id"))
+            event.pop("_cls")
 
             return event
-        except Category.DoesNotExist:
+        except Event.DoesNotExist:
             return False
-        except Category.MultipleObjectsReturned:
+        except Event.MultipleObjectsReturned:
             return -1
+        except pymongo.errors.InvalidId:
+            return False
 
     def get_event_count(self, device_id: str = None):
         if device_id is not None:
@@ -729,6 +742,8 @@ class MongoDBIO:
                 event.pop("_cls")
             event["timestamp"] = str(event["timestamp"])
             event["device_id"] = str(event.pop("device"))
+
+            event["device"] = self.get_hostname_from_device_id(event["device_id"])
 
             events_cleansed.append(event)
 
