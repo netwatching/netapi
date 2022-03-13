@@ -7,7 +7,7 @@ from src.models.module import Type
 class Aggregator(MongoModel):
     token = fields.CharField(required=True)
     version = fields.CharField(required=False)
-    identifier = fields.CharField(required=False)
+    identifier = fields.CharField(required=True)
     devices = fields.ListField(fields.ReferenceField(Device, on_delete=ReferenceField.NULLIFY))
     types = fields.ListField(fields.ReferenceField(Type, on_delete=ReferenceField.NULLIFY))
 
