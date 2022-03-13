@@ -772,10 +772,10 @@ class MongoDBIO:
                 LinkJson(
                     source=source_node.hostname,
                     target=target_node.hostname,
-                    source_mac=source_link.mac,
-                    source_description=source_link.description,
-                    target_mac=target_link.mac,
-                    target_description=target_link.description
+                    # source_mac=source_link.mac,
+                    # source_description=source_link.description,
+                    # target_mac=target_link.mac,
+                    # target_description=target_link.description
                 )
             )
             if hasattr(source_node, "ip"):
@@ -788,8 +788,18 @@ class MongoDBIO:
             else:
                 target_ip = None
 
-            nodes.append(NodeJson(id=source_node.hostname, ip=source_ip))
-            nodes.append(NodeJson(id=target_node.hostname, ip=target_ip))
+            nodes.append(
+                NodeJson(
+                    id=source_node.hostname,
+                    # ip=source_ip
+                )
+            )
+            nodes.append(
+                NodeJson(
+                    id=target_node.hostname,
+                    # ip=target_ip
+                )
+            )
 
         tree = TreeJson(links=links, nodes=nodes)
         return tree

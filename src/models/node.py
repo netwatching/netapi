@@ -47,18 +47,18 @@ class LinkJson(BaseModel):
     value: int = 50
 
     # Additional data
-    source_mac: str
-    source_description: str
-    target_mac: str
-    target_description: str
+    # source_mac: str
+    # source_description: str
+    # target_mac: str
+    # target_description: str
 
 
 class NodeJson(BaseModel):
     id: str
-    group: int = 0
+    group: int = 1
 
     # Additional data
-    ip: Optional[str]
+    # ip: Optional[str]
 
 
 class TreeJson(BaseModel):
