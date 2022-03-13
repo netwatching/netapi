@@ -480,6 +480,8 @@ class MongoDBIO:
             if isinstance(key, str) and "." in key:
                 new_key = key.replace(".", "___")
                 new_dict[new_key] = dict[key]
+            else:
+                new_dict[key] = dict[key]
         return new_dict
 
     def __normalize_dictionary__(self, dict: dict):
@@ -488,6 +490,8 @@ class MongoDBIO:
             if isinstance(key, str) and "___" in key:
                 new_key = key.replace("___", ".")
                 new_dict[new_key] = dict[key]
+            else:
+                new_dict[key] = dict[key]
         return new_dict
 
     def set_aggregator_version(self, id, ver):
