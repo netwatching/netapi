@@ -233,11 +233,12 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
 
     try:
         token = request.token
+        identifier = request.identifier
     except KeyError:
         raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     try:
-        mongo.add_aggregator(token)
+        mongo.add_aggregator(token, identifier)
     except pymongo.errors.DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Already exists")
 

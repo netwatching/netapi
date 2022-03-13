@@ -109,9 +109,9 @@ class MongoDBIO:
         except Aggregator.MultipleObjectsReturned:
             return -1
 
-    def add_aggregator(self, token: str):
+    def add_aggregator(self, token: str, identifier):
         try:
-            ag = Aggregator(token=token).save()
+            ag = Aggregator(token=token, identifier=identifier).save()
             return ag
         except Aggregator.DuplicateKeyError:
             return False
