@@ -310,6 +310,16 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
         return AggregatorModulesOut(detail="Inserted")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
+@app.get("/api/aggregators")
+async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
+    """
+    /aggregator/{id} - GET - returns devices belonging to the aggregator
+    """
+    authorize.jwt_required()
+
+    ags = mongo.get_aggregators()
+
+    return # TODO: des als zweites pls
 
 # --- DEVICES --- #
 @app.get("/api/devices/all")
@@ -361,7 +371,7 @@ async def device_by_id(id: str, authorize: AuthJWT = Depends()):
     return DeviceByIdOut(device=device)
 
 
-@app.post("/api/devices/data")
+@app.post("/api/devices/data", response_model=AddDataForDeviceOut)
 async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends data which is saved in the Database
