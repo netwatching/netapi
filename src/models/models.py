@@ -34,6 +34,12 @@ class Category(BaseModel):
     category: str = "Drucka"
 
 
+class AggregatorSmall(BaseModel):
+    version: str = "1.0"
+    identifier: str = "identifier"
+    id: str = "622cf4f1af250c8c7f1ad1bc"
+
+
 class Type(BaseModel):
     id: str = "SoSoHo"
     config_signature: dict
@@ -111,12 +117,16 @@ class DeviceByIdOut(BaseModel):
 class AggregatorByID(BaseModel):
     version: str = "0.0.0.0"
     ip: str = "1.2.3.4"
-    devices: list[Device]
+    devices: list
 
 
 class LinkAgDeviceIN(BaseModel):
     aggregator: str = "Aggregator Identifier"
     device: str = "Device Hostname"
+
+
+class GetCategoriesOut(BaseModel):
+    categories: list[Category]
 
 
 class AggregatorDeviceLinkOut(BaseModel):
@@ -132,6 +142,13 @@ class GetAllDevicesOut(BaseModel):
     amount: int = None
     total: int = 123
     devices: list
+
+
+class GetAllAlertsOut(BaseModel):
+    page: int = None
+    amount: int = None
+    total: int = 123
+    alerts: list
 
 
 class AggregatorVersionIn(BaseModel):
@@ -151,8 +168,8 @@ class AggregatorModulesOut(BaseModel):
 
 
 class AddDeviceIn(BaseModel):
-    device: str = "name"
-    ip: Optional[str] = "testDevice.local or 0.0.0.0"
+    hostname: str = "device.local"
+    ip: Optional[str] = "0.0.0.0"
     category: str = "category"
 
 
@@ -186,6 +203,10 @@ class GetAlertsByIdIn(BaseModel):
 
 class SetConfig(BaseModel):
     config: list[Module]
+
+
+class AggregatorsOut(BaseModel):
+    aggregators: list[AggregatorSmall]
 
 
 # --- Old Models for old DB --- #
