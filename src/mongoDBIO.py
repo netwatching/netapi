@@ -39,7 +39,7 @@ class MongoDBIO:
         return modules
 
     def get_aggregators(self):
-        ags = list(Aggregator.objects.only("identifier").only("_id").only("version").all().values()) # TODO: only select identifier, id, version
+        ags = list(Aggregator.objects.only("identifier").only("_id").only("version").all().values())
         for ag in ags:
             ag["id"] = str(ag.pop("_id"))
         return ags
