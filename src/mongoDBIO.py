@@ -56,6 +56,14 @@ class MongoDBIO:
         print(typesDict)
         return typesDict
 
+    def set_aggregator_device(self, ag, dev):
+        ag = Aggregator.objects.get({"identifier": ag})
+        dev = Aggregator.objects.get({"hostname": dev})
+
+        ag.devices.append(dev).save()
+
+        return ag
+
     def add_category(self, category: str):
         try:
             category = Category(category=category).save()
