@@ -38,6 +38,10 @@ class MongoDBIO:
         modules = list(Module.objects.order_by([['type', DESCENDING]]).all())
         return modules
 
+    def get_aggregators(self):
+        ags = list(Aggregator.objects.all()) # TODO: only select identifier, id, version
+        return ags
+
     def get_types(self):
         types = Type.objects.order_by([['type', DESCENDING]]).all()
         typesDict = []
