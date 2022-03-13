@@ -527,7 +527,7 @@ class MongoDBIO:
         aggregator.types = types
         return aggregator.save()
 
-    def add_device_web(self, device, category, ip="1.1.1.1"):
+    def add_device_web(self, hostname, category, ip="1.1.1.1", ):
         try:
             cat = Category.objects.get({'category': category})
         except Category.DoesNotExist:
@@ -535,8 +535,8 @@ class MongoDBIO:
         except Category.MultipleObjectsReturned:
             return -1
 
-        if not self.check_if_device_exsits(device):
-            return Device(hostname=device, category=cat.pk, ip=ip).save()
+        if not self.check_if_device_exsits(hostname):
+            return Device(hostname=hostname, category=cat.pk, ip=ip).save()
         return False
 
     def get_device_config(self, id):

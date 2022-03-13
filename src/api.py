@@ -19,10 +19,10 @@ from src.models.node import TreeJson
 from src.mongoDBIO import MongoDBIO
 from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
-    AggregatorByID, SetConfig, LinkAgDeviceIN, AggregatorDeviceLinkOut, \
+    AggregatorByID, SetConfig, LinkAgDeviceIN, AggregatorDeviceLinkOut, AggregatorsOut, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
-    GetAlertsByIdIn
+    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -310,7 +310,8 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
         return AggregatorModulesOut(detail="Inserted")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
-@app.get("/api/aggregators")
+
+@app.get("/api/aggregators", response_model=AggregatorsOut)
 async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -319,7 +320,8 @@ async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
 
     ags = mongo.get_aggregators()
 
-    return ags
+    return AggregatorsOut(aggregators=ags)
+
 
 @app.post("/api/aggregator/link/device", response_model=AggregatorDeviceLinkOut)
 async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT = Depends()):
@@ -338,8 +340,9 @@ async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT 
 
     return AggregatorDeviceLinkOut(detail="Updated")
 
+
 # --- DEVICES --- #
-@app.get("/api/devices/all")
+@app.get("/api/devices/all", response_model=GetAllDevicesOut)
 async def get_devices_by_category_full(
         category: Optional[str] = "",
         page: Optional[int] = None,
@@ -358,7 +361,7 @@ async def get_devices_by_category_full(
     return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
 
 
-@app.get("/api/devices")
+@app.get("/api/devices", response_model=GetAllDevicesOut)
 async def get_devices_by_category(
         category: Optional[str] = "",
         page: Optional[int] = None,
@@ -401,9 +404,9 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     return AddDataForDeviceOut(detail="success")
 
 
-@app.get("/api/devices/{device_id}/alerts")
+@app.get("/api/devices/{id}/alerts", response_model=GetAllAlertsOut)
 async def get_alerts_by_device(
-        device_id: str,
+        id: str,
         min_severity: Optional[int] = None,
         severity: Optional[str] = None,
         page: Optional[int] = None,
@@ -411,7 +414,7 @@ async def get_alerts_by_device(
         authorize: AuthJWT = Depends()
 ):
     """
-    /devices/{did}/alerts - GET - get all alerts by device id
+    /devices/{id}/alerts - GET - get all alerts by device id
     """
     authorize.jwt_required()
 
@@ -429,7 +432,7 @@ async def get_alerts_by_device(
                                               amount=amount,
                                               min_severity=min_severity,
                                               severity=severity,
-                                              device_id=device_id)
+                                              device_id=id)
             if isinstance(current_events, bool) is False and current_events is not False:
                 events = current_events
     else:
@@ -442,20 +445,15 @@ async def get_alerts_by_device(
                                           amount=amount,
                                           min_severity=min_severity,
                                           severity=severity,
-                                          device_id=device_id)
+                                          device_id=id)
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    out = {
-        "page": page,
-        "amount": amount,
-        "total": mongo.get_event_count(device_id=device_id),
-        "alerts": events
-    }
+    total = mongo.get_event_count(device_id=id)
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-    return JSONResponse(status_code=200, content=out)
+    return GetAllAlertsOut(page=page, amount=amount, total=total, alerts=events)
 
 
 @app.post("/api/devices", response_model=AddDeviceOut)
@@ -465,7 +463,7 @@ async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
     """
     authorize.jwt_required()
 
-    if mongo.add_device_web(request.device, request.category, request.ip):
+    if mongo.add_device_web(request.hostname, request.category, request.ip):
         return AddDeviceOut(detail="success")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
@@ -495,7 +493,7 @@ async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()
 
 
 # --- Category --- #
-@app.get("/api/categories")
+@app.get("/api/categories", response_model=GetCategoriesOut)
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories
@@ -505,7 +503,7 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     result = mongo.get_categories()
     print(result)
 
-    return mongo.get_categories()
+    return GetCategoriesOut(categories=result)
 
 
 @app.post("/api/categories", response_model=AddCategoryOut)
@@ -598,6 +596,7 @@ async def get_tree(authorize: AuthJWT = Depends()):
 
     return mongo.get_tree()
 
+
 # --- Modules --- #
 @app.get("/api/modules")
 async def get_all_modules(authorize: AuthJWT = Depends()):
@@ -609,6 +608,7 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     query = mongo.get_types()
 
     return JSONResponse(status_code=200, content=query)
+
 
 # --- Config --- #
 
