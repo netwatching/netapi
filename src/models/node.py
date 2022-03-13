@@ -23,7 +23,7 @@ class Link(MongoModel):
     vlan_id = fields.IntegerField(default=1)
     vlan_name = fields.CharField(default="Default")
     is_trunk = fields.BooleanField(default=False)
-    node = fields.ReferenceField(Node, required=True)
+    node = fields.ReferenceField(Node, required=True, on_delete=ReferenceField.CASCADE)
 
     class Meta:
         indexes = [

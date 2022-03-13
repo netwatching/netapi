@@ -15,4 +15,4 @@ class Type(MongoModel):
 
 class Module(MongoModel):
     config = fields.CharField(required=False)
-    type = fields.ReferenceField(Type, on_delete=ReferenceField.DENY)
+    type = fields.ReferenceField(Type, on_delete=ReferenceField.CASCADE)

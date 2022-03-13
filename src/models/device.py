@@ -21,10 +21,10 @@ class Data(MongoModel):
 class Device(MongoModel):
     hostname = fields.CharField(required=True)
     ip = fields.CharField(required=False)
-    category = fields.ReferenceField(Category, required=False, on_delete=ReferenceField.CASCADE)
-    static = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.CASCADE))
-    live = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.CASCADE))
-    modules = fields.ListField(fields.ReferenceField(Module, on_delete=ReferenceField.CASCADE), required=False)
+    category = fields.ReferenceField(Category, required=False, on_delete=ReferenceField.NULLIFY)
+    static = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.NULLIFY))
+    live = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.NULLIFY))
+    modules = fields.ListField(fields.ReferenceField(Module, on_delete=ReferenceField.NULLIFY), required=False)
 
     class Meta:
         indexes = [

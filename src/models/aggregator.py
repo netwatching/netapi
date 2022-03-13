@@ -8,8 +8,8 @@ class Aggregator(MongoModel):
     token = fields.CharField(required=True)
     version = fields.CharField(required=False)
     identifier = fields.CharField(required=False)
-    devices = fields.ListField(fields.ReferenceField(Device, on_delete=ReferenceField.DENY))
-    types = fields.ListField(fields.ReferenceField(Type, on_delete=ReferenceField.DENY))
+    devices = fields.ListField(fields.ReferenceField(Device, on_delete=ReferenceField.NULLIFY))
+    types = fields.ListField(fields.ReferenceField(Type, on_delete=ReferenceField.NULLIFY))
 
     class Meta:
         indexes = [

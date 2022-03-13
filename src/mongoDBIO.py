@@ -134,28 +134,36 @@ class MongoDBIO:
             live = []
             modules = []
 
-            category = device.category.category
+            if hasattr(device, "category"):
+                category = device.category.category
 
-            for s in device.static:
-                r = s.to_son().to_dict()
-                r.pop('_id')
-                static.append(r)
+            if hasattr(device, "static"):
+                for s in device.static:
+                    r = s.to_son().to_dict()
+                    r.pop('_id')
+                    static.append(r)
 
-            for l in device.live:
-                r = l.to_son().to_dict()
-                r.pop('_id')
-                live.append(r)
+            if hasattr(device, "live"):
+                for l in device.live:
+                    r = l.to_son().to_dict()
+                    r.pop('_id')
+                    live.append(r)
 
-            for m in device.modules:
-                r = m.to_son().to_dict()
-                r.pop('_id')
-                modules.append(r)
+            if hasattr(device, "modules"):
+                for m in device.modules:
+                    r = m.to_son().to_dict()
+                    r.pop('_id')
+                    modules.append(r)
 
             d = device.to_son().to_dict()
-            d["category"] = category
-            d["static"] = static
-            d["live"] = live
-            d["modules"] = modules
+            if "category" in d:
+                d["category"] = category
+            if "static" in d:
+                d["static"] = static
+            if "live" in d:
+                d["live"] = live
+            if "modules" in d:
+                d["modules"] = modules
 
             d.pop("_id")
             return d
@@ -247,28 +255,36 @@ class MongoDBIO:
         live = []
         modules = []
         for d in devices:
-            category = d.category.category
+            if hasattr(d, "category"):
+                category = d.category.category
 
-            for s in d.static:
-                r = s.to_son().to_dict()
-                r.pop('_id')
-                static.append(r)
+            if hasattr(d, "static"):
+                for s in d.static:
+                    r = s.to_son().to_dict()
+                    r.pop('_id')
+                    static.append(r)
 
-            for l in d.live:
-                r = l.to_son().to_dict()
-                r.pop('_id')
-                live.append(r)
+            if hasattr(d, "live"):
+                for l in d.live:
+                    r = l.to_son().to_dict()
+                    r.pop('_id')
+                    live.append(r)
 
-            for m in d.modules:
-                r = m.to_son().to_dict()
-                r.pop('_id')
-                modules.append(r)
+            if hasattr(d, "modules"):
+                for m in d.modules:
+                    r = m.to_son().to_dict()
+                    r.pop('_id')
+                    modules.append(r)
 
             d = d.to_son().to_dict()
-            d["category"] = category
-            d["static"] = static
-            d["live"] = live
-            d["modules"] = modules
+            if "category" in d:
+                d["category"] = category
+            if "static" in d:
+                d["static"] = static
+            if "live" in d:
+                d["live"] = live
+            if "modules" in d:
+                d["modules"] = modules
 
             d.pop("_id")
             devs.append(d)
@@ -328,13 +344,14 @@ class MongoDBIO:
         devs = []
         for d in devices:
 
-            category = self.get_category_by_id(d["category"])
-            category = category.category
+            if "category" in d:
+                category = self.get_category_by_id(d["category"])
+                category = category.category
+                d["category"] = category
 
             d["id"] = str(d.pop("_id"))
             if "_cls" in d:
                 d.pop("_cls")
-            d["category"] = category
             if "static" in d:
                 d.pop("static")
             if "live" in d:
@@ -504,15 +521,15 @@ class MongoDBIO:
         except Aggregator.MultipleObjectsReturned:
             return -1
 
-        config = []
+        config_out = []
 
         for t in ag.types:
             for m in dev.modules:
                 if t.type == m.type:
-                    t.type.config = json.loads(self.crypt.decrypt(t.type.config, config("cryptokey"))).update(json.loads(self.crypt.decrypt(m.type.config, config("7C1aGDU8ym9UudJXfNI01exYvfriT6RD"))))
-            config.append(t.type)
+                    t.type.config = json.loads(self.crypt.decrypt(t.type.config, config("cryptokey"))).update(json.loads(self.crypt.decrypt(m.type.config, config("cryptokey"))))
+            config_out.append(t.type)
 
-        return config
+        return config_out
 
     def set_device_config(self, id, config):
         try:
@@ -530,9 +547,6 @@ class MongoDBIO:
         dev.modules = modules
         dev.save()
         return
-
-
-        return config
 
     def get_categories(self):
         categories = list(Category.objects.order_by([('_id', DESCENDING)]).all())
