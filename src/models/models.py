@@ -114,6 +114,15 @@ class AggregatorByID(BaseModel):
     devices: list[Device]
 
 
+class LinkAgDeviceIN(BaseModel):
+    aggregator: str = "Aggregator Identifier"
+    device: str = "Device Hostname"
+
+
+class AggregatorDeviceLinkOut(BaseModel):
+    detail: str = "updated"
+
+
 class GetDevicesByAggregator(BaseModel):
     id: str = "621bcca84763b786518e2a4f"
 

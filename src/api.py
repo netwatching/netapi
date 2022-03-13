@@ -19,7 +19,7 @@ from src.models.node import TreeJson
 from src.mongoDBIO import MongoDBIO
 from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
-    AggregatorByID, SetConfig, \
+    AggregatorByID, SetConfig, LinkAgDeviceIN, AggregatorDeviceLinkOut, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
     GetAlertsByIdIn
@@ -320,6 +320,23 @@ async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
     ags = mongo.get_aggregators()
 
     return # TODO: des als zweites pls
+
+@app.post("/api/aggregator/link/device", response_model=AggregatorDeviceLinkOut)
+async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT = Depends()):
+    """
+    /aggregator/link/device - POST - link device and aggregator
+    """
+    authorize.jwt_required()
+
+    try:
+        ag = request.aggregator
+        dev = request.device
+    except KeyError:
+        raise HTTPException(status_code=400, detail="Bad Parameter")
+
+    mongo.set_aggregator_device(ag, dev)
+
+    return AggregatorDeviceLinkOut(detail="Updated")
 
 # --- DEVICES --- #
 @app.get("/api/devices/all")
