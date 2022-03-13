@@ -515,6 +515,9 @@ class MongoDBIO:
         except Device.MultipleObjectsReturned:
             return -1
 
+        for type in aggregator.types:
+            type.delete()
+
         types = []
         for t in modules:
             type = Type(type=t.id, signature=t.config_signature,
@@ -522,7 +525,7 @@ class MongoDBIO:
             types.append(type)
 
         aggregator.types = types
-        return (aggregator.save())
+        return aggregator.save()
 
     def add_device_web(self, device, category, ip="1.1.1.1"):
         try:
