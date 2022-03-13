@@ -319,7 +319,7 @@ async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
 
     ags = mongo.get_aggregators()
 
-    return # TODO: des als zweites pls
+    return ags
 
 @app.post("/api/aggregator/link/device", response_model=AggregatorDeviceLinkOut)
 async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT = Depends()):

@@ -59,9 +59,12 @@ class MongoDBIO:
 
     def set_aggregator_device(self, ag, dev):
         ag = Aggregator.objects.get({"identifier": ag})
-        dev = Aggregator.objects.get({"hostname": dev})
+        dev = Device.objects.get({"hostname": dev})
 
-        ag.devices.append(dev).save()
+        devices = ag.devices
+        devices.append(dev)
+        ag.devices = devices
+        ag.save()
 
         return ag
 
@@ -125,11 +128,8 @@ class MongoDBIO:
             return -1
 
     def add_aggregator(self, token: str, identifier):
-        try:
-            ag = Aggregator(token=token, identifier=identifier).save()
-            return ag
-        except Aggregator.DuplicateKeyError:
-            return False
+        ag = Aggregator(token=token, identifier=identifier).save()
+        return ag
 
     def get_aggregator_devices(self, id):
         try:
