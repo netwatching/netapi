@@ -93,6 +93,7 @@ class ServiceAggregatorLogin(BaseModel):
 
 class AddAggregatorIn(BaseModel):
     token: str = "token"
+    identifier: str = "myAggregator"
 
 
 class AddAggregatorOut(BaseModel):
