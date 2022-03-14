@@ -519,7 +519,7 @@ async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends())
 
 
 # --- Alerts --- #
-@app.get("/api/alerts")
+@app.get("/api/alerts", response_model=GetAllAlertsOut)
 async def get_all_alerts(
         min_severity: Optional[int] = None,
         severity: Optional[str] = None,
@@ -561,16 +561,12 @@ async def get_all_alerts(
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    out = {
-        "page": page,
-        "amount": amount,
-        "total": mongo.get_event_count(),
-        "alerts": events
-    }
+
+    total = mongo.get_event_count()
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
-    return JSONResponse(status_code=200, content=out)
+    return GetAllAlertsOut(page=page, amount=amount, total=total, alerts=events)
 
 
 @app.get("/api/alerts/{event_id}", response_model=GetAlertByIdOut)
