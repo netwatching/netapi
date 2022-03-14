@@ -43,3 +43,5 @@ redis~=4.1.1
 pycryptodome==3.14.1
 
 humanize==4.0.0
+
+Faker==13.3.2
