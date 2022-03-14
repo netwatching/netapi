@@ -14,7 +14,7 @@ from bson import ObjectId
 from src.models.event import Event
 from src.models.aggregator import Aggregator
 from src.models.module import Type, Module
-from src.models.device import Device, Category, Data
+from src.models.device import Device, Category, Data, Filter
 from src.models.node import Link, LinkJson, NodeJson, TreeJson, Connection, Node
 
 from src.crypt import Crypt
@@ -558,7 +558,8 @@ class MongoDBIO:
         for t in ag.types:
             for m in dev.modules:
                 if t.type == m.type:
-                    t.type.config = json.loads(self.crypt.decrypt(t.type.config, config("cryptokey"))).update(json.loads(self.crypt.decrypt(m.type.config, config("cryptokey"))))
+                    t.type.config = json.loads(self.crypt.decrypt(t.type.config, config("cryptokey"))).update(
+                        json.loads(self.crypt.decrypt(m.type.config, config("cryptokey"))))
             config_out.append(t.type)
 
         return config_out
@@ -1003,3 +1004,48 @@ class MongoDBIO:
                     self.__handle_live_data__(device=device, key=type, input=data)
                 r.flushdb()
             print("Redis thread successful")
+
+    # --- Filter --- #
+
+    def filter_devices(self, key: str, value: str, feature: str = None, category: Category = None):
+        self.__handle_filter__(key, value, feature, category)
+        if category:
+            devices = list(Device.objects.raw({"category": category.pk}).all())
+        else:
+            devices = list(Device.objects.all())
+
+        filtered = []
+        for device in devices:
+            if hasattr(device, "static"):
+                for data in device.static:
+                    if feature and data.key != feature:
+                        continue
+
+                    data_set = data.data
+                    if self.__filter_for_key_value__(data_set, key, value):
+                        filtered.append({"id": str(device.pk)})
+
+        return filtered
+
+    def __filter_for_key_value__(self, data_set: dict, key: str, value: str):
+        for data_key in data_set:
+            data_piece = data_set[data_key]
+            if isinstance(data_piece, dict):
+                if self.__filter_for_key_value__(data_piece, key, value):
+                    return True
+            else:
+                if str(data_key).lower() == str(key).lower() and str(data_piece).lower() == str(value).lower():
+                    return True
+        return False
+
+    def __handle_filter__(self, key: str, value: str, feature: str = None, category: Category = None):
+        try:
+            filter = Filter(key=key, value=value)
+            if feature:
+                filter.feature = feature
+            if category:
+                filter.category = category
+            filter.save()
+            return True
+        except pymongo.errors.DuplicateKeyError:
+            return False
