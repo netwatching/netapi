@@ -1033,6 +1033,11 @@ class MongoDBIO:
             if isinstance(data_piece, dict):
                 if self.__filter_for_key_value__(data_piece, key, value):
                     return True
+            elif isinstance(data_piece, list):
+                if str(data_key).lower() == str(key).lower():
+                    for data_sub_piece in data_piece:
+                        if str(data_sub_piece).lower() == str(value).lower():
+                            return True
             else:
                 if str(data_key).lower() == str(key).lower() and str(data_piece).lower() == str(value).lower():
                     return True
