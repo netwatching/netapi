@@ -144,7 +144,7 @@ class MongoDBIO:
     def get_hostname_from_device_id(self, id: str):
         device = list(Device.objects.raw({"_id": ObjectId(id)}).only("hostname").all().values())
         if len(device) == 1:
-            return ObjectId(device[0]["hostname"])
+            return device[0]["hostname"]
         return None
 
     def get_device_by_id(self, id: str):
@@ -414,7 +414,6 @@ class MongoDBIO:
                     for static_key in static_data:
                         if static_key == "neighbors":
                             self.__handle_lldp_data__(links=static_data[static_key], device=device)
-                        #elif static_key == ""
                         else:
                             self.__handle_static_data__(device=dev, key=static_key,
                                                         input=self.__clean_dictionary__(static_data[static_key]))
@@ -752,7 +751,7 @@ class MongoDBIO:
             event["timestamp"] = str(event["timestamp"])
             event["device_id"] = str(event.pop("device"))
 
-            event["device"] = self.get_hostname_from_device_id(event["device_id"])
+            event["device"] = str(self.get_hostname_from_device_id(event["device_id"]))
 
             events_cleansed.append(event)
 
