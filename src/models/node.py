@@ -59,6 +59,7 @@ class NodeJson(BaseModel):
 
     # Additional data
     # ip: Optional[str]
+    device_id: str = None
 
 
 class TreeJson(BaseModel):

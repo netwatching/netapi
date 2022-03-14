@@ -142,13 +142,10 @@ class MongoDBIO:
             return -1
 
     def get_hostname_from_device_id(self, id: str):
-        try:
-            device = list(Device.objects.raw({"_id": ObjectId(id)}).only("hostname").all().values())
-            return device[0]["hostname"]
-        except Device.DoesNotExist:
-            return False
-        except Device.MultipleObjectsReturned:
-            return -1
+        device = list(Device.objects.raw({"_id": ObjectId(id)}).only("hostname").all().values())
+        if len(device) == 1:
+            return ObjectId(device[0]["hostname"])
+        return None
 
     def get_device_by_id(self, id: str):
         try:
@@ -408,11 +405,16 @@ class MongoDBIO:
                     dev = self.add_device(hostname=device["name"], category=category)
 
             if allowed is True:
+                live_data_types = {}
+                for index in self.redis_indices:
+                    live_data_types[index] = []
+
                 if "static_data" in device:
                     static_data = device["static_data"]
                     for static_key in static_data:
                         if static_key == "neighbors":
                             self.__handle_lldp_data__(links=static_data[static_key], device=device)
+                        #elif static_key == ""
                         else:
                             self.__handle_static_data__(device=dev, key=static_key,
                                                         input=self.__clean_dictionary__(static_data[static_key]))
@@ -807,6 +809,12 @@ class MongoDBIO:
         if self.__check_if_connection_exists__(connection=connection) is False:
             connection.save()
 
+    def get_device_id_from_hostname(self, hostname: str):
+        device = list(Device.objects.raw({"hostname": hostname}).only("_id").all().values())
+        if len(device) == 1:
+            return ObjectId(device[0]["_id"])
+        return None
+
     def get_tree(self):
         connections = Connection.objects.all()
 
@@ -817,6 +825,8 @@ class MongoDBIO:
             source_node = source_link.node
             target_link = connection.target
             target_node = target_link.node
+            source_device_id = self.get_device_id_from_hostname(source_node.hostname)
+            target_device_id = self.get_device_id_from_hostname(target_node.hostname)
 
             links.append(
                 LinkJson(
@@ -828,25 +838,27 @@ class MongoDBIO:
                     # target_description=target_link.description
                 )
             )
-            if hasattr(source_node, "ip"):
-                source_ip = source_node.ip
-            else:
-                source_ip = None
-
-            if hasattr(target_node, "ip"):
-                target_ip = target_node.ip
-            else:
-                target_ip = None
+            # if hasattr(source_node, "ip"):
+            #     source_ip = source_node.ip
+            # else:
+            #     source_ip = None
+            #
+            # if hasattr(target_node, "ip"):
+            #     target_ip = target_node.ip
+            # else:
+            #     target_ip = None
 
             nodes.append(
                 NodeJson(
                     id=source_node.hostname,
+                    device_id=str(source_device_id)
                     # ip=source_ip
                 )
             )
             nodes.append(
                 NodeJson(
                     id=target_node.hostname,
+                    device_id=str(target_device_id)
                     # ip=target_ip
                 )
             )
