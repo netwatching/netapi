@@ -35,16 +35,12 @@ class Device(MongoModel):
 class Filter(MongoModel):
     key = fields.CharField(required=True)
     value = fields.CharField(required=True)
-    feature = fields.CharField(required=False)
-    category = fields.ReferenceField(Category, required=False)
 
     class Meta:
         indexes = [
             IndexModel(
                 [
                     ('key', DESCENDING),
-                    ('value', DESCENDING),
-                    ('feature', DESCENDING),
-                    ('category', DESCENDING)
+                    ('value', DESCENDING)
                 ], unique=True)
         ]

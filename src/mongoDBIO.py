@@ -1007,49 +1007,135 @@ class MongoDBIO:
 
     # --- Filter --- #
 
-    def filter_devices(self, key: str, value: str, feature: str = None, category: Category = None):
-        self.__handle_filter__(key, value, feature, category)
-        if category:
-            devices = list(Device.objects.raw({"category": category.pk}).all())
+    # Deprecated
+
+    # def filter_devices(self, key: str, value: str, page:int, amount: int, feature: str = None, category: Category = None):
+    #     self.__handle_filter__(key, value, feature, category)
+    #
+    #     if (page is not None and amount is not None) and (page > 0 and amount > 0):
+    #         if category is not None:
+    #             devices = list(Device.objects \
+    #                            .raw({'category': category.pk}) \
+    #                            .order_by([('_id', DESCENDING)]) \
+    #                            .skip((page - 1) * amount) \
+    #                            .limit(amount))
+    #         else:
+    #             devices = list(Device.objects \
+    #                            .order_by([('_id', DESCENDING)]) \
+    #                            .skip((page - 1) * amount) \
+    #                            .limit(amount))
+    #
+    #     elif (page is None or page <= 0) and amount is None:
+    #         if category is not None:
+    #             devices = list(Device.objects \
+    #                            .raw({'category': category.pk}) \
+    #                            .order_by([('_id', DESCENDING)]))
+    #         else:
+    #             devices = list(Device.objects \
+    #                            .order_by([('_id', DESCENDING)]) \
+    #                            .all()
+    #                            .values())
+    #     else:
+    #         return -1
+    #
+    #     filtered = []
+    #     for device in devices:
+    #         if hasattr(device, "static"):
+    #             for data in device.static:
+    #                 if feature and data.key != feature:
+    #                     continue
+    #
+    #                 data_set = data.data
+    #                 if self.__filter_for_key_value__(data_set, key, value):
+    #                     filtered.append({"id": str(device.pk)})
+    #
+    #     return filtered
+    #
+    # def __filter_for_key_value__(self, data_set: dict, key: str, value: str):
+    #     for data_key in data_set:
+    #         data_piece = data_set[data_key]
+    #         if isinstance(data_piece, dict):
+    #             if self.__filter_for_key_value__(data_piece, key, value):
+    #                 return True
+    #         elif isinstance(data_piece, list):
+    #             if str(data_key).lower() == str(key).lower():
+    #                 for data_sub_piece in data_piece:
+    #                     if str(data_sub_piece).lower() == str(value).lower():
+    #                         return True
+    #         else:
+    #             if str(data_key).lower() == str(key).lower() and str(data_piece).lower() == str(value).lower():
+    #                 return True
+    #     return False
+    #
+    # def __handle_filter__(self, key: str, value: str, feature: str = None, category: Category = None):
+    #     try:
+    #         filter = Filter(key=key, value=value)
+    #         if feature:
+    #             filter.feature = feature
+    #         if category:
+    #             filter.category = category
+    #         filter.save()
+    #         return True
+    #     except pymongo.errors.DuplicateKeyError:
+    #         return False
+
+    def filter_devices(self, key: str, value: str, page: int = None, amount: int = None):
+        self.__handle_filter__(key, value)
+
+        data = Data.objects.all()
+        if page and amount:
+            cursor = data.aggregate(
+                {
+                    "$addFields": {
+                        "UnknownKeys": {
+                                "$objectToArray": "$data"
+                            }
+                    }
+                },
+                {
+                    "$match": {
+                            f"UnknownKeys.v.{key}": {
+                                "$regex": f"{value}", "$options": "i"
+                            }
+                        }
+                },
+                {
+                    "$project": {"_id": 1},
+                },
+                {
+                    "$skip": (page - 1) * amount
+                },
+                {
+                    "$limit": amount
+                }
+            )
         else:
-            devices = list(Device.objects.all())
+            cursor = data.aggregate(
+                {
+                    "$addFields": {
+                        "UnknownKeys": {
+                            "$objectToArray": "$data"
+                        }
+                    }
+                },
+                {
+                    "$match": {
+                        f"UnknownKeys.v.{key}": {
+                            "$regex": f"{value}", "$options": "i"
+                        }
+                    }
+                },
+                {
+                    "$project": {"_id": 1},
+                }
+            )
 
-        filtered = []
-        for device in devices:
-            if hasattr(device, "static"):
-                for data in device.static:
-                    if feature and data.key != feature:
-                        continue
+        cursor = list(cursor)
+        i = 5
 
-                    data_set = data.data
-                    if self.__filter_for_key_value__(data_set, key, value):
-                        filtered.append({"id": str(device.pk)})
-
-        return filtered
-
-    def __filter_for_key_value__(self, data_set: dict, key: str, value: str):
-        for data_key in data_set:
-            data_piece = data_set[data_key]
-            if isinstance(data_piece, dict):
-                if self.__filter_for_key_value__(data_piece, key, value):
-                    return True
-            elif isinstance(data_piece, list):
-                if str(data_key).lower() == str(key).lower():
-                    for data_sub_piece in data_piece:
-                        if str(data_sub_piece).lower() == str(value).lower():
-                            return True
-            else:
-                if str(data_key).lower() == str(key).lower() and str(data_piece).lower() == str(value).lower():
-                    return True
-        return False
-
-    def __handle_filter__(self, key: str, value: str, feature: str = None, category: Category = None):
+    def __handle_filter__(self, key: str, value: str):
         try:
             filter = Filter(key=key, value=value)
-            if feature:
-                filter.feature = feature
-            if category:
-                filter.category = category
             filter.save()
             return True
         except pymongo.errors.DuplicateKeyError:
