@@ -75,6 +75,15 @@ class MongoDBIO:
         except Category.DuplicateKeyError:
             return False
 
+
+    def delete_category(self, category: str):
+        try:
+            category = Category.objects.get({"category": category})
+            category.delete()
+            return True
+        except Category.DuplicateKeyError:
+            return False
+
     def get_category_by_category(self, category: str):
         return Category.objects.get({"category": category})
 
@@ -539,6 +548,17 @@ class MongoDBIO:
         if not self.check_if_device_exsits(hostname):
             return Device(hostname=hostname, category=cat.pk, ip=ip).save()
         return False
+
+    def delete_device_web(self, id):
+        try:
+            dev = Device.objects.get({'_id': id})
+            dev.delete()
+            return True
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
 
     def get_device_config(self, id):
         try:
