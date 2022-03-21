@@ -271,7 +271,18 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     except AttributeError:
         devices = []
 
-    return AggregatorByID(version=version, ip=ip, devices=devices)
+    devs = []
+    for d in devices:
+
+        d = d.to_son().to_dict()
+        id_ = d["_id"]
+        d["id"] = str(id_)
+        d.pop("_id")
+        d.pop("category")
+        print(d)
+        devs.append(d)
+
+    return AggregatorByID(version=version, ip=ip, devices=devs)
 
 
 @app.post("/api/aggregator/{id}/version", response_model=AggregatorVersionOut)
