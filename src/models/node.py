@@ -11,7 +11,6 @@ class Node(MongoModel):
 
     class Meta:
         indexes = [
-            IndexModel([('ip', DESCENDING)], unique=True),
             IndexModel([('hostname', DESCENDING)], unique=True),
         ]
 

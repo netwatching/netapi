@@ -367,8 +367,11 @@ class MongoDBIO:
 
             if "category" in d:
                 category = self.get_category_by_id(d["category"])
-                category = category.category
-                d["category"] = category
+                if hasattr(category, "category"):
+                    category = category.category
+                    d["category"] = category
+                else:
+                    d.pop("category")
 
             d["id"] = str(d.pop("_id"))
             if "_cls" in d:
@@ -929,11 +932,20 @@ class MongoDBIO:
             else:
                 remote_mac = None
 
-            new_link = Link(mac=mac, description=description, remote_mac=remote_mac, node=node).save()
-            new_links.append(new_link)
+            new_link = Link(mac=mac, description=description, remote_mac=remote_mac, node=node)
+            new_link = self.__save_link__(new_link)
+            if new_link:
+                new_links.append(new_link)
 
         for new_link in new_links:
             self.__create_connections__(new_link)
+
+    def __save_link__(self, link: Link):
+        try:
+            link = link.save()
+            return link
+        except pymongo.errors.DuplicateKeyError:
+            return None
 
     # --- Redis --- #
 
@@ -1088,16 +1100,16 @@ class MongoDBIO:
                 {
                     "$addFields": {
                         "UnknownKeys": {
-                                "$objectToArray": "$data"
-                            }
+                            "$objectToArray": "$data"
+                        }
                     }
                 },
                 {
                     "$match": {
-                            f"UnknownKeys.v.{key}": {
-                                "$regex": f"{value}", "$options": "i"
-                            }
+                        f"UnknownKeys.v.{key}": {
+                            "$regex": f"{value}", "$options": "i"
                         }
+                    }
                 },
                 {
                     "$project": {"_id": 1},
@@ -1130,8 +1142,25 @@ class MongoDBIO:
                 }
             )
 
-        cursor = list(cursor)
-        i = 5
+        # devices = []
+        # for data in list(cursor):
+        #     current_devices = Device.objects.raw({"static": data["_id"]}).all()
+        #     for current_device in current_devices:
+        #         devices.append(current_device)
+
+        ids = []
+        for id in list(cursor):
+            ids.append(id["_id"])
+
+        devices = list(
+            Device.objects.aggregate({"$match": {
+                "static": {"$in": ids}}},
+                 {
+                     "$project": {"_id": 1, "hostname": 1, "ip": 1, "category": 1},
+                 })
+        )
+
+        return devices
 
     def __handle_filter__(self, key: str, value: str):
         try:
