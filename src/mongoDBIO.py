@@ -76,10 +76,7 @@ class MongoDBIO:
             return False
 
     def get_category_by_category(self, category: str):
-        try:
-            return Category.objects.get({"category": category})
-        except Category.DuplicateKeyError:
-            return False
+        return Category.objects.get({"category": category})
 
     def add_event(self, device: Device, severity: int, event: str,
                   timestamp: datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')):
@@ -386,7 +383,10 @@ class MongoDBIO:
         return out
 
     def add_data_for_devices(self, devices: list, external_events: dict):
-        category = self.get_category_by_category("New")
+        try:
+            category = self.get_category_by_category("New")
+        except:
+            category = Category(category="New").save()
 
         for device in devices:
             if "name" not in device:
