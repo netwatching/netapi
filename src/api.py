@@ -260,6 +260,8 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     db_result = mongo.get_aggregator_devices(id)
     try:
         version = db_result.version
+        if version == None:
+            version = ""
     except AttributeError:
         version = ""
     try:
@@ -278,10 +280,31 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
         id_ = d["_id"]
         d["id"] = str(id_)
         d.pop("_id")
+        if "category" in d:
+            category = mongo.get_category_by_id(d["category"])
+            category = category.category
+            d["type"] = category
         d.pop("category")
-        print(d)
-        devs.append(d)
+        d["timeout"] = 10
 
+        id = ObjectId(str(id_))
+        query_result = mongo.get_device_config(id)
+        configs = []
+        if not False:
+            for c in query_result:
+                name = c.type.type
+                if c.config is None:
+                    c.config = []
+                c = c.to_son().to_dict()
+                id_ = c["_id"]
+                c["id"] = str(id_)
+                c.pop("_id")
+                c["name"] = name
+                c.pop("type")
+                configs.append(c)
+            d["modules"] = configs
+
+        devs.append(d)
     return AggregatorByID(version=version, ip=ip, devices=devs)
 
 
@@ -501,7 +524,9 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
 
     if id:
         id = ObjectId(id)
-        return mongo.get_device_config(id)
+        query_result = mongo.get_device_config(id)
+        print(query_result)
+        return query_result
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
@@ -512,6 +537,7 @@ async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()
     """
     authorize.jwt_required()
 
+    id = ObjectId(id)
     return mongo.set_device_config(id, request.config)
     # raise HTTPException(status_code=400, detail=BAD_PARAM)
 
@@ -596,7 +622,6 @@ async def get_all_alerts(
                                           severity=severity)
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
-
 
     total = mongo.get_event_count()
 

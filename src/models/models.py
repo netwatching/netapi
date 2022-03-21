@@ -45,10 +45,12 @@ class Type(BaseModel):
     config_signature: dict
     config_fields: dict
 
+class TypeID(BaseModel):
+    id: str = "SoSoHo"
 
 class Module(BaseModel):
-    config: str = "JSON Static Config Override"
-    type: list[Type]
+    config: str = '{"timeout": 5}'
+    type: TypeID
 
 
 class Device(BaseModel):

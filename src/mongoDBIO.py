@@ -4,7 +4,7 @@ import json
 import pymodm
 import pymongo.errors
 import redis
-from decouple import config
+from decouple import config as dconfig
 from fastapi import HTTPException
 from pymodm import connection
 from pymongo import DESCENDING
@@ -52,9 +52,8 @@ class MongoDBIO:
         for t in types:
             t = t.to_son().to_dict()
             t.pop("_id")
-            t["config"] = json.loads(self.crypt.decrypt(t["config"], config("cryptokey")))
+            t["config"] = json.loads(self.crypt.decrypt(t["config"], dconfig("cryptokey")))
             typesDict.append(t)
-        print(typesDict)
         return typesDict
 
     def set_aggregator_device(self, ag, dev):
@@ -316,7 +315,6 @@ class MongoDBIO:
             devs.append(d)
 
         out["devices"] = devs
-        print(out)
         return out
 
     def get_device_by_category(self, category: str = "", page: int = None, amount: int = None):
@@ -536,7 +534,7 @@ class MongoDBIO:
         types = []
         for t in modules:
             type = Type(type=t.id, signature=t.config_signature,
-                        config=self.crypt.encrypt(json.dumps(t.config_fields), config("cryptokey"))).save()
+                        config=self.crypt.encrypt(json.dumps(t.config_fields), dconfig("cryptokey"))).save()
             types.append(type)
 
         aggregator.types = types
@@ -566,7 +564,7 @@ class MongoDBIO:
 
     def get_device_config(self, id):
         try:
-            dev = Device.objects.get({'_id', id})
+            dev = Device.objects.get({'_id': id})
             ag = Aggregator.objects.get({'devices': id})
         except Device.DoesNotExist:
             return False
@@ -581,16 +579,16 @@ class MongoDBIO:
 
         for t in ag.types:
             for m in dev.modules:
-                if t.type == m.type:
-                    t.type.config = json.loads(self.crypt.decrypt(t.type.config, config("cryptokey"))).update(
-                        json.loads(self.crypt.decrypt(m.type.config, config("cryptokey"))))
-            config_out.append(t.type)
+                decrypted = json.loads(self.crypt.decrypt(t.config, dconfig("cryptokey")))
+                if t.type == m.type.type:
+                    m.config = json.loads(self.crypt.decrypt(m.config, dconfig("cryptokey"))).update(decrypted)
+                    config_out.append(m)
 
         return config_out
 
-    def set_device_config(self, id, config):
+    def set_device_config(self, id, reqconfig):
         try:
-            dev = Device.objects.get({'_id', id})
+            dev = Device.objects.get({'_id': id})
         except Device.DoesNotExist:
             return False
         except Device.MultipleObjectsReturned:
@@ -598,12 +596,14 @@ class MongoDBIO:
 
         modules = []
 
-        for c in config:
-            m = Module(type=c.type, config=self.crypt.decrypt(json.dumps(c.config), config("cryptokey"))).save
+        for c in reqconfig:
+            type = Type.objects.get({'type': c.type.id})
+            dc = self.crypt.encrypt(c.config, dconfig("cryptokey"))
+            m = Module(type=type, config=dc).save()
             modules.append(m)
         dev.modules = modules
         dev.save()
-        return
+        return True
 
     def get_categories(self):
         categories = list(Category.objects.order_by([('_id', DESCENDING)]).all())
@@ -1030,10 +1030,10 @@ class MongoDBIO:
                     self.redis_insert(hostname=f"{hostname}--//--{port}", values=port_data[key], database_index=database_index)
 
     def redis_insert(self, hostname: str, values: dict, database_index: int):
-        pool = redis.ConnectionPool(host=str(config("rDBurl")),
-                                    port=str(config("rDBport")),
-                                    password=str(config("rDBpassword")),
-                                    username=str(config("rDBusername")),
+        pool = redis.ConnectionPool(host=str(dconfig("rDBurl")),
+                                    port=str(dconfig("rDBport")),
+                                    password=str(dconfig("rDBpassword")),
+                                    username=str(dconfig("rDBusername")),
                                     db=database_index)
         r = redis.Redis(connection_pool=pool)
         r.zadd(hostname, values)
@@ -1044,10 +1044,10 @@ class MongoDBIO:
             await asyncio.sleep(30 * 60)
 
             for i in range(0, len(self.redis_indices)):
-                pool = redis.ConnectionPool(host=str(config("rDBurl")),
-                                            port=str(config("rDBport")),
-                                            password=str(config("rDBpassword")),
-                                            username=str(config("rDBusername")),
+                pool = redis.ConnectionPool(host=str(dconfig("rDBurl")),
+                                            port=str(dconfig("rDBport")),
+                                            password=str(dconfig("rDBpassword")),
+                                            username=str(dconfig("rDBusername")),
                                             db=i)
                 r = redis.Redis(connection_pool=pool)
 
@@ -1056,8 +1056,6 @@ class MongoDBIO:
                     if isinstance(keys, list):
                         hostname = keys[0]
                         port = keys[1]
-                    else:
-                        continue
 
                     scores = r.zrange(hostname, 0, -1, withscores=True)
 
