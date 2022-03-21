@@ -75,11 +75,17 @@ class MongoDBIO:
         except Category.DuplicateKeyError:
             return False
 
-    def get_category_by_category(self, category: str):
+
+    def delete_category(self, category: str):
         try:
-            return Category.objects.get({"category": category})
+            category = Category.objects.get({"category": category})
+            category.delete()
+            return True
         except Category.DuplicateKeyError:
             return False
+
+    def get_category_by_category(self, category: str):
+        return Category.objects.get({"category": category})
 
     def add_event(self, device: Device, severity: int, event: str,
                   timestamp: datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')):
@@ -389,7 +395,10 @@ class MongoDBIO:
         return out
 
     def add_data_for_devices(self, devices: list, external_events: dict):
-        category = self.get_category_by_category("New")
+        try:
+            category = self.get_category_by_category("New")
+        except:
+            category = Category(category="New").save()
 
         for device in devices:
             if "name" not in device:
@@ -542,6 +551,17 @@ class MongoDBIO:
         if not self.check_if_device_exsits(hostname):
             return Device(hostname=hostname, category=cat.pk, ip=ip).save()
         return False
+
+    def delete_device_web(self, id):
+        try:
+            dev = Device.objects.get({'_id': id})
+            dev.delete()
+            return True
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
 
     def get_device_config(self, id):
         try:
