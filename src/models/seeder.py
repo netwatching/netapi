@@ -110,6 +110,20 @@ def seed_static_data(count, macs, hostname):
                     neighbor[0]["remote_chassis_id"] = mac["mac"]
                     neighbor[0]["remote_port"] = mac["mac"]
                     break
+            if neighbor is None:
+                neighbor = [
+                    {
+                        # "local_mac": "04:5F:B9:5E:55:B6",
+                        # "local_port": "GigabitEthernet1/0/1",
+                        # "remote_host": "R-1OG-122",
+                        # "remote_chassis_id": "68:d7:9a:4a:89:59",
+                        # "remote_port": "68:d7:9a:4a:89:59",
+                        # "remote_system_description": "UAP-nanoHD, 5.60.23.13051",
+                        # "remote_system_capability": "W"
+                    }
+                ]
+                neighbor[0]["local_port"] = interface["description"]
+                neighbor[0]["local_mac"] = interface["mac_address"]
 
         interfaces[interface["description"]] = dict(interface)
         if neighbor is not None:
@@ -165,3 +179,4 @@ def seeder(category_count, device_count, port_count):
 
 
 seeder(category_count, device_count, ports_count)
+#clear()

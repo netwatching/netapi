@@ -209,6 +209,18 @@ class AggregatorsOut(BaseModel):
     aggregators: list[AggregatorSmall]
 
 
+class DevicesFilterOut(BaseModel):
+    page: int = None
+    amount: int = None
+    total: int = None
+    devices: list
+
+
+class FilterOut(BaseModel):
+    key: str
+    value: str
+
+
 # --- Old Models for old DB --- #
 
 class oldDevice(BaseModel):  # old device model, should be deleted

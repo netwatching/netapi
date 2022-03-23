@@ -75,7 +75,6 @@ class MongoDBIO:
         except Category.DuplicateKeyError:
             return False
 
-
     def delete_category(self, category: str):
         try:
             category = Category.objects.get({"category": category})
@@ -425,7 +424,10 @@ class MongoDBIO:
                     static_data = device["static_data"]
                     for static_key in static_data:
                         if static_key == "neighbors":
-                            self.__handle_lldp_data__(links=static_data[static_key], device=device)
+                            interfaces = None
+                            if "network_interfaces" in static_data:
+                                interfaces = static_data["network_interfaces"]
+                            self.__handle_lldp_data__(links=static_data[static_key], device=device, interfaces=interfaces)
                         else:
                             self.__handle_static_data__(device=dev, key=static_key,
                                                         input=self.__clean_dictionary__(static_data[static_key]))
@@ -561,7 +563,6 @@ class MongoDBIO:
             return False
         except Device.MultipleObjectsReturned:
             return -1
-
 
     def get_device_config(self, id):
         try:
@@ -811,18 +812,11 @@ class MongoDBIO:
 
     def __create_connections__(self, source: Link):
         try:
-            target = Link.objects.get(
-                {
-                    "mac": {
-                        "$regex": f"^{source.remote_mac}$",
-                        "$options": "i"
-                    },
-                    "remote_mac": {
-                        "$regex": f"^{source.mac}$",
-                        "$options": "i"
-                    }
-                }
-            )
+            query = {
+                "mac": f"{source.remote_mac}",
+                "remote_mac": f"{source.mac}"
+            }
+            target = Link.objects.get(query)
         except Link.DoesNotExist:
             return
         except Link.MultipleObjectsReturned:
@@ -838,8 +832,38 @@ class MongoDBIO:
             return ObjectId(device[0]["_id"])
         return None
 
-    def get_tree(self):
-        connections = Connection.objects.all()
+    def get_connection_by_source(self, source_id: ObjectId):
+        try:
+            connection = Connection.objects.get({"source": source_id})
+            return connection
+        except Connection.DoesNotExist:
+            return None
+        except Connection.MultipleObjectsReturned:
+            return None
+
+    def get_connection_by_target(self, target_id: ObjectId):
+        try:
+            connection = Connection.objects.get({"target": target_id})
+            return connection
+        except Connection.DoesNotExist:
+            return None
+        except Connection.MultipleObjectsReturned:
+            return None
+
+    def get_tree(self, vlan_id: int = None):
+        if vlan_id:
+            connections = []
+            links = list(Link.objects.raw({"vlan_id": vlan_id}).only("_id").values())
+            for link in links:
+                connection = self.get_connection_by_source(source_id=link["_id"])
+                if connection is None:
+                    connection = self.get_connection_by_target(target_id=link["_id"])
+
+                if connection:
+                    connections.append(connection)
+
+        else:
+            connections = Connection.objects.all()
 
         links = []
         nodes = []
@@ -914,7 +938,14 @@ class MongoDBIO:
         except Node.MultipleObjectsReturned:
             return None
 
-    def __handle_lldp_data__(self, links: dict, device: dict):
+    def __is_int__(self, input):
+        try:
+            int(input)
+            return True
+        except ValueError:
+            return False
+
+    def __handle_lldp_data__(self, links: dict, device: dict, interfaces: dict):
         hostname = device["name"]
         ip = None
         if "ip" in device:
@@ -938,21 +969,36 @@ class MongoDBIO:
         for link_key in links:
             link = links[link_key][0]
             if "local_mac" in link:
-                mac = link["local_mac"]
+                mac = link["local_mac"].lower()
             else:
                 continue
 
+            vlan_id = None
             if "local_port" in link:
                 description = link["local_port"]
+
+                if interfaces and description in interfaces:
+                    if "vlan_id" in interfaces[description]:
+                        vlan_id = interfaces[description]["vlan_id"]
+                        if self.__is_int__(vlan_id):
+                            vlan_id = int(vlan_id)
+                        else:
+                            vlan_id = None
             else:
                 continue
 
+            remote_mac = None
             if "remote_chassis_id" in link:
-                remote_mac = link["remote_chassis_id"]
-            else:
-                remote_mac = None
+                remote_mac = link["remote_chassis_id"].lower()
 
-            new_link = Link(mac=mac, description=description, remote_mac=remote_mac, node=node)
+            if remote_mac:
+                new_link = Link(mac=mac, description=description, remote_mac=remote_mac, node=node)
+            else:
+                new_link = Link(mac=mac, description=description, node=node)
+
+            if vlan_id:
+                new_link.vlan_id = vlan_id
+
             new_link = self.__save_link__(new_link)
             if new_link:
                 new_links.append(new_link)
@@ -972,11 +1018,16 @@ class MongoDBIO:
     def redis_insert_live_data(self, device: Device, live_data: dict):
         hostname = device.hostname
 
-        for key in live_data:
-            database_index = self.redis_indices.index(key)
+        for port in live_data:
+            if isinstance(live_data[port], dict) is False:
+                continue
 
-            if database_index != -1:
-                self.redis_insert(hostname, live_data[key], database_index)
+            port_data = live_data[port]
+            for key in port_data:
+                database_index = self.redis_indices.index(key)
+
+                if database_index != -1:
+                    self.redis_insert(hostname=f"{hostname}--//--{port}", values=port_data[key], database_index=database_index)
 
     def redis_insert(self, hostname: str, values: dict, database_index: int):
         pool = redis.ConnectionPool(host=str(config("rDBurl")),
@@ -1001,7 +1052,13 @@ class MongoDBIO:
                 r = redis.Redis(connection_pool=pool)
 
                 for key in r.scan_iter():
-                    hostname = str(key, "utf-8")
+                    keys = str(key, "utf-8").split("--//--")
+                    if isinstance(keys, list):
+                        hostname = keys[0]
+                        port = keys[1]
+                    else:
+                        continue
+
                     scores = r.zrange(hostname, 0, -1, withscores=True)
 
                     device = self.get_device_by_hostname(hostname)
@@ -1023,7 +1080,7 @@ class MongoDBIO:
                             elif isinstance(event_time, str):
                                 timestamp = datetime.strptime(event_time, '%Y-%m-%d %H:%M:%S')
 
-                            event = f"Unusual high amount of {type}: {str(score[1])}"
+                            event = f"Unusual high amount of {type} at {port}: {str(score[1])}"
                             self.add_event(device=device, event=event, severity=3, timestamp=timestamp)
 
                     if len(scores) > 0:
@@ -1032,10 +1089,9 @@ class MongoDBIO:
                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                     data = {timestamp: avg_score}
-                    print(data)
                     self.__handle_live_data__(device=device, key=type, input=data)
                 r.flushdb()
-            print("Redis thread successful")
+
 
     # --- Filter --- #
 
@@ -1111,12 +1167,21 @@ class MongoDBIO:
     #     except pymongo.errors.DuplicateKeyError:
     #         return False
 
-    def filter_devices(self, key: str, value: str, page: int = None, amount: int = None):
+    def filter_devices(self, key: str, value: str, page: int = None, amount: int = None, category_id: str = None):
         self.__handle_filter__(key, value)
 
-        data = Data.objects.all()
+        if page and page <= 0:
+            page = None
+
+        if amount and amount <= 0:
+            amount = None
+
+        is_page = False
         if page and amount:
-            cursor = data.aggregate(
+            is_page = True
+
+        if is_page:
+            cursor_page = Data.objects.aggregate(
                 {
                     "$addFields": {
                         "UnknownKeys": {
@@ -1141,46 +1206,89 @@ class MongoDBIO:
                     "$limit": amount
                 }
             )
-        else:
-            cursor = data.aggregate(
-                {
-                    "$addFields": {
-                        "UnknownKeys": {
-                            "$objectToArray": "$data"
-                        }
+
+        cursor_total = Data.objects.aggregate(
+            {
+                "$addFields": {
+                    "UnknownKeys": {
+                        "$objectToArray": "$data"
                     }
-                },
-                {
-                    "$match": {
-                        f"UnknownKeys.v.{key}": {
-                            "$regex": f"{value}", "$options": "i"
-                        }
-                    }
-                },
-                {
-                    "$project": {"_id": 1},
                 }
-            )
-
-        # devices = []
-        # for data in list(cursor):
-        #     current_devices = Device.objects.raw({"static": data["_id"]}).all()
-        #     for current_device in current_devices:
-        #         devices.append(current_device)
-
-        ids = []
-        for id in list(cursor):
-            ids.append(id["_id"])
-
-        devices = list(
-            Device.objects.aggregate({"$match": {
-                "static": {"$in": ids}}},
-                 {
-                     "$project": {"_id": 1, "hostname": 1, "ip": 1, "category": 1},
-                 })
+            },
+            {
+                "$match": {
+                    f"UnknownKeys.v.{key}": {
+                        "$regex": f"{value}", "$options": "i"
+                    }
+                }
+            },
+            {
+                "$project": {"_id": 1},
+            }
         )
 
-        return devices
+        if is_page:
+            page_ids = []
+            for id in list(cursor_page):
+                page_ids.append(id["_id"])
+
+        total_ids = []
+        for id in list(cursor_total):
+            total_ids.append(id["_id"])
+
+        if category_id:
+            devices_raw = Device.objects.raw({"category": ObjectId(category_id)}).all()
+        else:
+            devices_raw = Device.objects.all()
+
+        if is_page:
+            devices = list(
+                devices_raw.aggregate({"$match": {
+                    "static": {"$in": page_ids}}},
+                    {
+                        "$project": {"_id": 1, "hostname": 1, "ip": 1, "category": 1},
+                    })
+            )
+        else:
+            devices = list(
+                devices_raw.aggregate({"$match": {
+                    "static": {"$in": total_ids}}},
+                    {
+                        "$project": {"_id": 1, "hostname": 1, "ip": 1, "category": 1},
+                    })
+            )
+
+        if is_page:
+            total = len(list(
+                devices_raw.aggregate({"$match": {
+                    "static": {"$in": total_ids}}},
+                    {
+                        "$project": {"_id": 1, "hostname": 1, "ip": 1, "category": 1},
+                    })
+            ))
+        else:
+            total = len(devices)
+
+        devs = []
+        for d in devices:
+            if "category" in d:
+                category = self.get_category_by_id(d["category"])
+                if category and isinstance(category, Category) and hasattr(category, "category"):
+                    category = category.category
+                    d["category"] = category
+                else:
+                    d.pop("category")
+
+            d["id"] = str(d.pop("_id"))
+
+            devs.append(d)
+
+        return {
+            "page": page,
+            "amout": amount,
+            "total": total,
+            "devices": devs
+        }
 
     def __handle_filter__(self, key: str, value: str):
         try:
@@ -1189,3 +1297,15 @@ class MongoDBIO:
             return True
         except pymongo.errors.DuplicateKeyError:
             return False
+
+    def get_filter(self):
+        filters = []
+        for filter in list(Filter.objects.all().values()):
+            filter["id"] = str(filter.pop("_id"))
+            filter.pop("_cls")
+
+            filters.append(filter)
+
+        return filters
+
+

@@ -22,7 +22,7 @@ from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginO
     AggregatorByID, SetConfig, LinkAgDeviceIN, AggregatorDeviceLinkOut, AggregatorsOut, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
-    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut
+    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -620,13 +620,38 @@ async def get_alert_by_id(event_id: str, authorize: AuthJWT = Depends()):
 
 
 @app.get("/api/tree", response_model=TreeJson)
-async def get_tree(authorize: AuthJWT = Depends()):
+async def get_tree(authorize: AuthJWT = Depends(), vlan_id: Optional[int] = None):
     """
     /tree/ - GET - get tree view
     """
     authorize.jwt_required()
+    return mongo.get_tree(vlan_id)
 
-    return mongo.get_tree()
+
+@app.post("/api/devices/filter", response_model=DevicesFilterOut)
+async def filter_devices(key: str,
+                value: str,
+                page: Optional[int] = None,
+                amount: Optional[int] = None,
+                category_id: Optional[str] = None,
+                authorize: AuthJWT = Depends()
+):
+    """
+    /devices/filter/ - GET - get filtered devices
+    """
+    authorize.jwt_required()
+
+    return mongo.filter_devices(key, value, page, amount, category_id)
+
+
+@app.get("/api/filter", response_model=FilterOut)
+async def filter_devices(authorize: AuthJWT = Depends()):
+    """
+    /filter/ - GET - get filter
+    """
+    authorize.jwt_required()
+
+
 
 
 # --- Modules --- #
