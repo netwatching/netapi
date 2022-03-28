@@ -613,8 +613,11 @@ class MongoDBIO:
 
         for c in reqconfig:
             type = Type.objects.get({'type': c.type.id})
-            dc = self.crypt.encrypt(c.config, dconfig("cryptokey"))
-            m = Module(type=type, config=dc).save()
+            if c.config:
+                dc = self.crypt.encrypt(c.config, dconfig("cryptokey"))
+                m = Module(type=type, config=dc).save()
+            else:
+                m = Module(type=type).save()
             modules.append(m)
         dev.modules = modules
         dev.save()
