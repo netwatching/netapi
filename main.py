@@ -28,5 +28,5 @@ if __name__ == "__main__":
     while True:
         try:
             run()
-        except (pymongo.errors.ServerSelectionTimeoutError, TimeoutError, asyncio.exceptions.CancelledError, ssl.SSLError):
+        except (pymongo.errors.ServerSelectionTimeoutError, TimeoutError, asyncio.exceptions.CancelledError, ssl.SSLError, OSError):
             print("Lost connection to DB! Restarting")

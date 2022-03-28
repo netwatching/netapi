@@ -41,15 +41,15 @@ class AggregatorSmall(BaseModel):
 
 
 class Type(BaseModel):
-    id: str = "SoSoHo"
+    id: str = "ssh"
     config_signature: dict
     config_fields: dict
 
 class TypeID(BaseModel):
-    id: str = "SoSoHo"
+    id: str = "ssh"
 
 class Module(BaseModel):
-    config: str = '{"timeout": 5}'
+    config: Optional[str] = '{"timeout": 5}'
     type: TypeID
 
 
