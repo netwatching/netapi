@@ -3,7 +3,7 @@ from pymodm import MongoModel, fields, ReferenceField
 
 class Type(MongoModel):
     type = fields.CharField(required=True)
-    config = fields.CharField(required=True)
+    config = fields.CharField(required=False)
     signature = fields.CharField(required=True)
 
 
