@@ -131,7 +131,7 @@ async def root() -> APIStatus:
 
 # --- AUTHENTICATION--- #
 
-@app.post('/api/login', response_model=ServiceLoginOut)
+@app.post('/api/login', response_model=ServiceLoginOut, tags=["Authentication"])
 async def login(req: ServiceLogin, authorize: AuthJWT = Depends()):
     """
     /login - POST - authenticates frontend User and returns JWT
@@ -157,7 +157,7 @@ async def login(req: ServiceLogin, authorize: AuthJWT = Depends()):
         return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
 
 
-@app.post('/api/refresh', response_model=ServiceLoginOut)
+@app.post('/api/refresh', response_model=ServiceLoginOut, tags=["Authentication"])
 async def refresh(authorize: AuthJWT = Depends()):
     """
     /refresh - POST - renew expired access token
@@ -177,7 +177,7 @@ async def refresh(authorize: AuthJWT = Depends()):
     return ServiceLoginOut(access_token=access_token, refresh_token=refresh_token)
 
 
-@app.post("/api/aggregator-login", response_model=ServiceAggregatorLoginOut)
+@app.post("/api/aggregator-login", response_model=ServiceAggregatorLoginOut, tags=["Authentication"])
 async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT = Depends()):
     """
     /aggregator-login - POST - aggregator login with token
@@ -206,7 +206,7 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-@app.post("/api/aggregator-refresh", response_model=ServiceLoginOut)
+@app.post("/api/aggregator-refresh", response_model=ServiceLoginOut, tags=["Authentication"])
 async def aggregator_refresh(authorize: AuthJWT = Depends()):
     """
     /aggregator-login - POST - aggregator login with token
@@ -224,7 +224,7 @@ async def aggregator_refresh(authorize: AuthJWT = Depends()):
 
 
 # --- AGGREGATOR --- #
-@app.post("/api/aggregator", status_code=201, response_model=AddAggregatorOut)
+@app.post("/api/aggregator", status_code=201, response_model=AddAggregatorOut, tags=["Aggregator"])
 async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends()):
     """
     /aggregator - POST - webinterface can add a new token for a new aggregator
@@ -245,7 +245,7 @@ async def add_aggregator(request: AddAggregatorIn, authorize: AuthJWT = Depends(
     return AddAggregatorOut(detail="Created")
 
 
-@app.get("/api/aggregator/{id}", response_model=AggregatorByID)
+@app.get("/api/aggregator/{id}", response_model=AggregatorByID, tags=["Aggregator"])
 async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -308,7 +308,7 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     return AggregatorByID(version=version, ip=ip, devices=devs)
 
 
-@app.post("/api/aggregator/{id}/version", response_model=AggregatorVersionOut)
+@app.post("/api/aggregator/{id}/version", response_model=AggregatorVersionOut, tags=["Aggregator"])
 async def get_aggregator_version_by_id(request: AggregatorVersionIn, id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/version - POST - set version of the aggregator
@@ -326,7 +326,7 @@ async def get_aggregator_version_by_id(request: AggregatorVersionIn, id: str = "
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/aggregator/{id}/modules", response_model=AggregatorModulesOut)
+@app.post("/api/aggregator/{id}/modules", response_model=AggregatorModulesOut, tags=["Aggregator"])
 async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authorize: AuthJWT = Depends()):
     """
     /aggregator/{id}/modules - POST - aggregator sends all known modules
@@ -345,7 +345,7 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.get("/api/aggregators", response_model=AggregatorsOut)
+@app.get("/api/aggregators", response_model=AggregatorsOut, tags=["Aggregator"])
 async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
     """
     /aggregator/{id} - GET - returns devices belonging to the aggregator
@@ -357,7 +357,7 @@ async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
     return AggregatorsOut(aggregators=ags)
 
 
-@app.post("/api/aggregator/link/device", response_model=AggregatorDeviceLinkOut)
+@app.post("/api/aggregator/link/device", response_model=AggregatorDeviceLinkOut, tags=["Aggregator"])
 async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT = Depends()):
     """
     /aggregator/link/device - POST - link device and aggregator
@@ -376,7 +376,7 @@ async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT 
 
 
 # --- DEVICES --- #
-@app.get("/api/devices/all", response_model=GetAllDevicesOut)
+@app.get("/api/devices/all", response_model=GetAllDevicesOut, tags=["Device"])
 async def get_devices_by_category_full(
         category: Optional[str] = "",
         page: Optional[int] = None,
@@ -395,7 +395,7 @@ async def get_devices_by_category_full(
     return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
 
 
-@app.get("/api/devices", response_model=GetAllDevicesOut)
+@app.get("/api/devices", response_model=GetAllDevicesOut, tags=["Device"])
 async def get_devices_by_category(
         category: Optional[str] = "",
         page: Optional[int] = None,
@@ -414,7 +414,7 @@ async def get_devices_by_category(
     return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
 
 
-@app.get("/api/devices/{id}", response_model=DeviceByIdOut)
+@app.get("/api/devices/{id}", response_model=DeviceByIdOut, tags=["Device"])
 async def device_by_id(id: str, authorize: AuthJWT = Depends()):
     """
     /devices/{id} - GET - returns device infos with specified id
@@ -425,7 +425,7 @@ async def device_by_id(id: str, authorize: AuthJWT = Depends()):
     return DeviceByIdOut(device=device)
 
 
-@app.post("/api/devices/data", response_model=AddDataForDeviceOut)
+@app.post("/api/devices/data", response_model=AddDataForDeviceOut, tags=["Device"])
 async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends()):
     """
     /devices/data - POST - aggregator sends data which is saved in the Database
@@ -438,7 +438,7 @@ async def devices_data(request: AddDataForDevices, authorize: AuthJWT = Depends(
     return AddDataForDeviceOut(detail="success")
 
 
-@app.get("/api/devices/{id}/alerts", response_model=GetAllAlertsOut)
+@app.get("/api/devices/{id}/alerts", response_model=GetAllAlertsOut, tags=["Device"])
 async def get_alerts_by_device(
         id: str,
         min_severity: Optional[int] = None,
@@ -490,7 +490,7 @@ async def get_alerts_by_device(
     return GetAllAlertsOut(page=page, amount=amount, total=total, alerts=events)
 
 
-@app.post("/api/devices", response_model=AddDeviceOut)
+@app.post("/api/devices", response_model=AddDeviceOut, tags=["Device"])
 async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
     """
     /devices - POST - adds a new device to the DB
@@ -502,7 +502,7 @@ async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.delete("/api/devices/{id}", response_model=AddDeviceOut)
+@app.delete("/api/devices/{id}", response_model=AddDeviceOut, tags=["Device"])
 async def add_device(id: str, authorize: AuthJWT = Depends()):
     """
     /devices - POST - adds a new device to the DB
@@ -515,7 +515,7 @@ async def add_device(id: str, authorize: AuthJWT = Depends()):
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.get("/api/devices/{id}/config")
+@app.get("/api/devices/{id}/config", tags=["Device"])
 async def add_device(id: str = None, authorize: AuthJWT = Depends()):
     """
     /devices/{id}/config - GET - gets the configs of an device
@@ -530,7 +530,7 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/devices/{id}/config")
+@app.post("/api/devices/{id}/config", tags=["Device"])
 async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()):
     """
     /devices/{id}/config - POST - adds a new device config to the DB
@@ -543,7 +543,7 @@ async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()
 
 
 # --- Category --- #
-@app.get("/api/categories", response_model=GetCategoriesOut)
+@app.get("/api/categories", response_model=GetCategoriesOut, tags=["Category"])
 async def get_all_categories(authorize: AuthJWT = Depends()):
     """
     /categories - GET - get all available categories
@@ -556,7 +556,7 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     return GetCategoriesOut(categories=result)
 
 
-@app.post("/api/categories", response_model=AddCategoryOut)
+@app.post("/api/categories", response_model=AddCategoryOut, tags=["Category"])
 async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends()):
     """
     /categories - POST - add a new Category to the DB
@@ -568,7 +568,7 @@ async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends())
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.delete("/api/categories", response_model=AddCategoryOut)
+@app.delete("/api/categories", response_model=AddCategoryOut, tags=["Category"])
 async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends()):
     """
     /categories - POST - add a new Category to the DB
@@ -581,7 +581,7 @@ async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends())
 
 
 # --- Alerts --- #
-@app.get("/api/alerts", response_model=GetAllAlertsOut)
+@app.get("/api/alerts", response_model=GetAllAlertsOut, tags=["Alert"])
 async def get_all_alerts(
         min_severity: Optional[int] = None,
         severity: Optional[str] = None,
@@ -630,7 +630,7 @@ async def get_all_alerts(
     return GetAllAlertsOut(page=page, amount=amount, total=total, alerts=events)
 
 
-@app.get("/api/alerts/{event_id}", response_model=GetAlertByIdOut)
+@app.get("/api/alerts/{event_id}", response_model=GetAlertByIdOut, tags=["Alert"])
 async def get_alert_by_id(event_id: str, authorize: AuthJWT = Depends()):
     """
     /alerts/{aid} - GET - get specific alert by id
@@ -644,7 +644,7 @@ async def get_alert_by_id(event_id: str, authorize: AuthJWT = Depends()):
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.get("/api/tree", response_model=TreeJson)
+@app.get("/api/tree", response_model=TreeJson, tags=["Tree View"])
 async def get_tree(authorize: AuthJWT = Depends(), vlan_id: Optional[int] = None):
     """
     /tree/ - GET - get tree view
@@ -653,7 +653,7 @@ async def get_tree(authorize: AuthJWT = Depends(), vlan_id: Optional[int] = None
     return mongo.get_tree(vlan_id)
 
 
-@app.post("/api/devices/filter", response_model=DevicesFilterOut)
+@app.post("/api/devices/filter", response_model=DevicesFilterOut, tags=["Device"])
 async def filter_devices(key: str,
                 value: str,
                 page: Optional[int] = None,
@@ -669,7 +669,7 @@ async def filter_devices(key: str,
     return mongo.filter_devices(key, value, page, amount, category_id)
 
 
-@app.get("/api/filter", response_model=FilterOut)
+@app.get("/api/filter", response_model=FilterOut, tags=["Device"])
 async def filter_devices(authorize: AuthJWT = Depends()):
     """
     /filter/ - GET - get filter
@@ -680,7 +680,7 @@ async def filter_devices(authorize: AuthJWT = Depends()):
 
 
 # --- Modules --- #
-@app.get("/api/modules")
+@app.get("/api/modules", tags=["Modules"])
 async def get_all_modules(authorize: AuthJWT = Depends()):
     """
     /modules - GET - get all modules
@@ -691,8 +691,6 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
 
     return JSONResponse(status_code=200, content=query)
 
-
-# --- Config --- #
 
 
 # --- Exception Handling --- #
