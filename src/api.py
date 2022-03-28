@@ -528,6 +528,8 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
     if id:
         id = ObjectId(id)
         query_result = mongo.get_device_config(id)
+        if not query_result or query_result == -1:
+            raise HTTPException(status_code=400, detail="No config found")
         return query_result
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
