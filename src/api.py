@@ -529,7 +529,7 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
         id = ObjectId(str(id))
         query_result = mongo.get_device_config(id)
         configs = []
-        if not False:
+        if query_result is not False or query_result != -1:
             for c in query_result:
                 name = c.type.type
                 if c.config is None:
@@ -674,12 +674,12 @@ async def get_tree(authorize: AuthJWT = Depends(), vlan_id: Optional[int] = None
 
 @app.post("/api/devices/filter", response_model=DevicesFilterOut, tags=["Device"])
 async def filter_devices(key: str,
-                value: str,
-                page: Optional[int] = None,
-                amount: Optional[int] = None,
-                category_id: Optional[str] = None,
-                authorize: AuthJWT = Depends()
-):
+                         value: str,
+                         page: Optional[int] = None,
+                         amount: Optional[int] = None,
+                         category_id: Optional[str] = None,
+                         authorize: AuthJWT = Depends()
+                         ):
     """
     /devices/filter/ - GET - get filtered devices
     """
@@ -696,8 +696,6 @@ async def filter_devices(authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
 
-
-
 # --- Modules --- #
 @app.get("/api/modules", tags=["Modules"])
 async def get_all_modules(authorize: AuthJWT = Depends()):
@@ -709,7 +707,6 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     query = mongo.get_types()
 
     return JSONResponse(status_code=200, content=query)
-
 
 
 # --- Exception Handling --- #
