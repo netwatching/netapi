@@ -187,7 +187,9 @@ class MongoDBIO:
 
             if hasattr(device, "modules"):
                 for m in device.modules:
+                    t = m.type.type
                     r = m.to_son().to_dict()
+                    r["type"] = t
                     r.pop('_id')
                     modules.append(r)
 

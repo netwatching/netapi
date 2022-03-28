@@ -425,6 +425,7 @@ async def device_by_id(id: str, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     device = mongo.get_device_by_id(id)
+
     return DeviceByIdOut(device=device)
 
 
