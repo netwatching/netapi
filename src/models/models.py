@@ -53,6 +53,16 @@ class Module(BaseModel):
     type: TypeID
 
 
+class CoreTypeOut(BaseModel):
+    config: str =  ""
+    id: str = "6241fd6191ddffb865978d87"
+    name: str = "ssh"
+
+
+class DeviceConfigOut(BaseModel):
+    configs: list[CoreTypeOut]
+
+
 class Device(BaseModel):
     hostname: str = "device.local"
     ip: str = "1.2.3.4"

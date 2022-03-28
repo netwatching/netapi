@@ -22,7 +22,7 @@ from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginO
     AggregatorByID, SetConfig, LinkAgDeviceIN, AggregatorDeviceLinkOut, AggregatorsOut, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
-    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut
+    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut, DeviceConfigOut
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -518,7 +518,7 @@ async def add_device(id: str, authorize: AuthJWT = Depends()):
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.get("/api/devices/{id}/config", tags=["Device"])
+@app.get("/api/devices/{id}/config", response_model=DeviceConfigOut, tags=["Device"])
 async def add_device(id: str = None, authorize: AuthJWT = Depends()):
     """
     /devices/{id}/config - GET - gets the configs of an device
@@ -526,11 +526,26 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     if id:
-        id = ObjectId(id)
+        id = ObjectId(str(id))
         query_result = mongo.get_device_config(id)
+        configs = []
+        if not False:
+            for c in query_result:
+                name = c.type.type
+                if c.config is None:
+                    c.config = []
+                c = c.to_son().to_dict()
+                id_ = c["_id"]
+                c["id"] = str(id_)
+                c.pop("_id")
+                c["name"] = name
+                c.pop("type")
+                c.pop("_cls")
+                configs.append(c)
         if not query_result or query_result == -1:
             raise HTTPException(status_code=400, detail="No config found")
-        return query_result
+        print(configs)
+        return DeviceConfigOut(configs=configs)
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
