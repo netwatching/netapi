@@ -370,7 +370,10 @@ async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT 
     except KeyError:
         raise HTTPException(status_code=400, detail="Bad Parameter")
 
-    mongo.set_aggregator_device(ag, dev)
+    db_result = mongo.set_aggregator_device(ag, dev)
+
+    if not db_result or db_result is -1:
+        raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     return AggregatorDeviceLinkOut(detail="Updated")
 
