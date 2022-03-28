@@ -529,7 +529,8 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
         id = ObjectId(str(id))
         query_result = mongo.get_device_config(id)
         configs = []
-        if query_result is not False or query_result != -1:
+        print(query_result)
+        if query_result is not False and query_result != -1:
             for c in query_result:
                 name = c.type.type
                 if c.config is None:
