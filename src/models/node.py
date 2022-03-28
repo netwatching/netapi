@@ -19,7 +19,8 @@ class Link(MongoModel):
     mac = fields.CharField(required=True)
     remote_mac = fields.CharField(required=False)
     description = fields.CharField(required=True)
-    vlan_id = fields.IntegerField(default=1)
+    vlans = fields.ListField(required=True, default=[{"id": 1, "name": "default"}])
+    is_trunk = fields.BooleanField(required=True, default=False)
     node = fields.ReferenceField(Node, required=True, on_delete=ReferenceField.CASCADE)
 
     class Meta:

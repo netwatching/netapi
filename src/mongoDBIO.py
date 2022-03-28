@@ -423,10 +423,11 @@ class MongoDBIO:
                     for static_key in static_data:
                         if static_key == "neighbors":
                             interfaces = None
-                            if "network_interfaces" in static_data:
-                                interfaces = static_data["network_interfaces"]
-                            self.__handle_lldp_data__(links=static_data[static_key], device=device, interfaces=interfaces)
-                        else:
+                            if "vlan" in static_data:
+                                interfaces = static_data["vlan"]
+                            self.__handle_lldp_data__(links=static_data[static_key], device=device,
+                                                      interfaces=interfaces)
+                        elif isinstance(static_data[static_key], dict):
                             self.__handle_static_data__(device=dev, key=static_key,
                                                         input=self.__clean_dictionary__(static_data[static_key]))
 
@@ -477,7 +478,10 @@ class MongoDBIO:
                 return
 
         data = Data(key=key, data=input).save()
-        data_list = device.live
+        if hasattr(device, "live"):
+            data_list = device.live
+        else:
+            data_list = []
         data_list.append(data)
         device.live = data_list
         device.save()
@@ -851,10 +855,23 @@ class MongoDBIO:
             return None
 
     def get_tree(self, vlan_id: int = None):
+        connections = []
         if vlan_id:
-            connections = []
-            links = list(Link.objects.raw({"vlan_id": vlan_id}).only("_id").values())
+            valid_links = []
+            links = list(Link.objects.only("_id").only("vlans").values())
             for link in links:
+                if "vlans" in link:
+                    for vlan in link["vlans"]:
+                        if isinstance(vlan, dict) is False:
+                            try:
+                                vlan = json.loads(vlan)
+                            finally:
+                                continue
+
+                        if "id" in vlan and vlan["id"] == vlan_id:
+                            valid_links.append(link)
+
+            for link in valid_links:
                 connection = self.get_connection_by_source(source_id=link["_id"])
                 if connection is None:
                     connection = self.get_connection_by_target(target_id=link["_id"])
@@ -945,7 +962,7 @@ class MongoDBIO:
         except ValueError:
             return False
 
-    def __handle_lldp_data__(self, links: dict, device: dict, interfaces: dict):
+    def __handle_lldp_data__(self, links: dict, device: dict, interfaces: list):
         hostname = device["name"]
         ip = None
         if "ip" in device:
@@ -973,17 +990,37 @@ class MongoDBIO:
             else:
                 continue
 
-            vlan_id = None
+            vlans = []
             if "local_port" in link:
                 description = link["local_port"]
 
-                if interfaces and description in interfaces:
-                    if "vlan_id" in interfaces[description]:
-                        vlan_id = interfaces[description]["vlan_id"]
-                        if self.__is_int__(vlan_id):
-                            vlan_id = int(vlan_id)
-                        else:
-                            vlan_id = None
+                if interfaces:
+                   for interface in interfaces:
+                       if "port" in interface and description == interface["port"]:
+                           if "is_trunk" in interface and isinstance(interface["is_trunk"], bool):
+                               is_trunk = interface["is_trunk"]
+                           elif "vlans" in interface and isinstance(interface["vlans"], list) and len(
+                                   interface["vlans"] > 1):
+                               is_trunk = True
+                           else:
+                               is_trunk = False
+
+                           if "vlans" in interface and isinstance(interface["vlans"], list):
+
+                               for vlan in interface["vlans"]:
+                                   if "id" in vlan and "name" in vlan:
+                                       vlan_id = vlan["id"]
+                                       vlan_name = vlan["name"]
+                                       vlans.append({"id": vlan_id, "name": vlan_name})
+
+
+                # if interfaces and description in interfaces:
+                #     if "vlan_id" in interfaces[description]:
+                #         vlan_id = interfaces[description]["vlan_id"]
+                #         if self.__is_int__(vlan_id):
+                #             vlan_id = int(vlan_id)
+                #         else:
+                #             vlan_id = None
             else:
                 continue
 
@@ -996,8 +1033,8 @@ class MongoDBIO:
             else:
                 new_link = Link(mac=mac, description=description, node=node)
 
-            if vlan_id:
-                new_link.vlan_id = vlan_id
+            if vlans:
+                new_link.vlans = vlans
 
             new_link = self.__save_link__(new_link)
             if new_link:
@@ -1027,7 +1064,8 @@ class MongoDBIO:
                 database_index = self.redis_indices.index(key)
 
                 if database_index != -1:
-                    self.redis_insert(hostname=f"{hostname}--//--{port}", values=port_data[key], database_index=database_index)
+                    self.redis_insert(hostname=f"{hostname}--//--{port}", values=port_data[key],
+                                      database_index=database_index)
 
     def redis_insert(self, hostname: str, values: dict, database_index: int):
         pool = redis.ConnectionPool(host=str(dconfig("rDBurl")),
@@ -1057,7 +1095,7 @@ class MongoDBIO:
                         hostname = keys[0]
                         port = keys[1]
 
-                    scores = r.zrange(hostname, 0, -1, withscores=True)
+                    scores = r.zrange(key, 0, -1, withscores=True)
 
                     device = self.get_device_by_hostname(hostname)
                     if isinstance(device, bool) and device is False:
@@ -1069,7 +1107,7 @@ class MongoDBIO:
                     avg_score = 0
                     for score in scores:
                         avg_score += score[1]
-                        if score[1] >= 80000:
+                        if score[1] >= 21:
 
                             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             event_time = str(score[0], "utf-8")
@@ -1089,7 +1127,6 @@ class MongoDBIO:
                     data = {timestamp: avg_score}
                     self.__handle_live_data__(device=device, key=type, input=data)
                 r.flushdb()
-
 
     # --- Filter --- #
 
@@ -1305,5 +1342,3 @@ class MongoDBIO:
             filters.append(filter)
 
         return filters
-
-
