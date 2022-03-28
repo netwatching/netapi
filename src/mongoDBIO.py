@@ -57,8 +57,19 @@ class MongoDBIO:
         return typesDict
 
     def set_aggregator_device(self, ag, dev):
-        ag = Aggregator.objects.get({"identifier": ag})
-        dev = Device.objects.get({"hostname": dev})
+        try:
+            ag = Aggregator.objects.get({"identifier": ag})
+        except Aggregator.DoesNotExist:
+            return False
+        except Aggregator.MultipleObjectsReturned:
+            return -1
+
+        try:
+            dev = Device.objects.get({"hostname": dev})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
 
         devices = ag.devices
         devices.append(dev)
