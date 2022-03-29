@@ -57,6 +57,7 @@ class CoreTypeOut(BaseModel):
     config: str =  ""
     id: str = "6241fd6191ddffb865978d87"
     name: str = "ssh"
+    type : dict
 
 
 class DeviceConfigOut(BaseModel):

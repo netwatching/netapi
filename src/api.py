@@ -16,6 +16,7 @@ import pymongo.errors
 from bson import ObjectId
 
 from src.models.node import TreeJson
+from src.crypt import Crypt
 from src.mongoDBIO import MongoDBIO
 from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginOut, ServiceLogin, \
     ServiceAggregatorLogin, AddAggregatorIn, AddAggregatorOut, APIStatus, DeviceByIdIn, GetAllDevicesOut, \
@@ -33,6 +34,8 @@ start_time = datetime.datetime.now()
 version = "DEV"
 
 app = FastAPI()
+
+crypt = Crypt()
 
 mongo = MongoDBIO(
     details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
@@ -530,10 +533,12 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
         id = ObjectId(str(id))
         query_result = mongo.get_device_config(id)
         configs = []
-        print(query_result)
         if query_result is not False and query_result != -1:
             for c in query_result:
                 name = c.type.type
+                type = c.type.to_son().to_dict()
+                type.pop("_id")
+                type["config"] = crypt.decrypt(type["config"], config("cryptokey"))
                 if c.config is None:
                     c.config = []
                 c = c.to_son().to_dict()
@@ -541,12 +546,11 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
                 c["id"] = str(id_)
                 c.pop("_id")
                 c["name"] = name
-                c.pop("type")
+                c["type"] = type
                 c.pop("_cls")
                 configs.append(c)
         if not query_result or query_result == -1:
             raise HTTPException(status_code=400, detail="No config found")
-        print(configs)
         return DeviceConfigOut(configs=configs)
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
