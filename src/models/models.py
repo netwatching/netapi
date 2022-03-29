@@ -218,6 +218,10 @@ class SetConfig(BaseModel):
     config: list[Module]
 
 
+class DeleteConfig(BaseModel):
+    module: str = "ssh"
+
+
 class AggregatorsOut(BaseModel):
     aggregators: list[AggregatorSmall]
 

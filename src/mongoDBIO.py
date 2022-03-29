@@ -626,6 +626,20 @@ class MongoDBIO:
         dev.save()
         return True
 
+    def delete_device_config(self, id, type):
+        try:
+            dev = Device.objects.get({'_id': id})
+        except Device.DoesNotExist:
+            return False
+        except Device.MultipleObjectsReturned:
+            return -1
+
+        for m in dev.modules:
+            if m.type.type == type:
+                m.delete()
+                return True
+        return False
+
     def get_categories(self):
         categories = list(Category.objects.order_by([('_id', DESCENDING)]).all())
 

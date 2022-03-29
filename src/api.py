@@ -23,7 +23,7 @@ from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginO
     AggregatorByID, SetConfig, LinkAgDeviceIN, AggregatorDeviceLinkOut, AggregatorsOut, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
-    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut, DeviceConfigOut
+    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut, DeviceConfigOut, DeleteConfig
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -565,6 +565,20 @@ async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()
     id = ObjectId(id)
     return mongo.set_device_config(id, request.config)
     # raise HTTPException(status_code=400, detail=BAD_PARAM)
+
+
+@app.delete("/api/devices/{id}/config", tags=["Device"], response_model=AddCategoryOut)
+async def add_device(id: str, request: DeleteConfig, authorize: AuthJWT = Depends()):
+    """
+    /devices/{id}/config - POST - adds a new device config to the DB
+    """
+    authorize.jwt_required()
+
+    id = ObjectId(id)
+    result = mongo.delete_device_config(id, request.module)
+    if result:
+        return AddCategoryOut(detail="success")
+    raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- Category --- #
