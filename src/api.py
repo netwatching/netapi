@@ -567,17 +567,18 @@ async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()
     # raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.delete("/api/devices/{id}/config", tags=["Device"], response_model=AddCategoryOut)
-async def add_device(id: str, request: DeleteConfig, authorize: AuthJWT = Depends()):
+@app.delete("/api/devices/{id}/config/{module}", tags=["Device"], response_model=AddCategoryOut)
+async def add_device(id: str, module: str, authorize: AuthJWT = Depends()):
     """
     /devices/{id}/config - POST - adds a new device config to the DB
     """
     authorize.jwt_required()
 
-    id = ObjectId(id)
-    result = mongo.delete_device_config(id, request.module)
-    if result:
-        return AddCategoryOut(detail="success")
+    if id and module:
+        id = ObjectId(id)
+        result = mongo.delete_device_config(id, module)
+        if result:
+            return AddCategoryOut(detail="success")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
