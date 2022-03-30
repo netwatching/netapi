@@ -510,9 +510,9 @@ async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
 
 
 @app.delete("/api/devices/{id}", response_model=AddDeviceOut, tags=["Device"])
-async def add_device(id: str, authorize: AuthJWT = Depends()):
+async def delete_device(id: str, authorize: AuthJWT = Depends()):
     """
-    /devices - POST - adds a new device to the DB
+    /devices - POST - deletes a new device to the DB
     """
     authorize.jwt_required()
 
@@ -523,9 +523,9 @@ async def add_device(id: str, authorize: AuthJWT = Depends()):
 
 
 @app.get("/api/devices/{id}/config", response_model=DeviceConfigOut, tags=["Device"])
-async def add_device(id: str = None, authorize: AuthJWT = Depends()):
+async def get_device_config(id: str = None, authorize: AuthJWT = Depends()):
     """
-    /devices/{id}/config - GET - gets the configs of an device
+    /devices/{id}/config - GET - gets the configs of a device
     """
     authorize.jwt_required()
 
@@ -556,7 +556,7 @@ async def add_device(id: str = None, authorize: AuthJWT = Depends()):
 
 
 @app.post("/api/devices/{id}/config", tags=["Device"])
-async def add_device(id: str, request: SetConfig, authorize: AuthJWT = Depends()):
+async def add_device_config(id: str, request: SetConfig, authorize: AuthJWT = Depends()):
     """
     /devices/{id}/config - POST - adds a new device config to the DB
     """

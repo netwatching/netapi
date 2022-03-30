@@ -244,6 +244,15 @@ class MongoDBIO:
         except Category.MultipleObjectsReturned:
             return -1
 
+    def get_aggregator_by_identifier(self, identifier: str):
+        try:
+            aggregator = Aggregator.objects.get({'identifier': identifier})
+            return aggregator
+        except Aggregator.DoesNotExist:
+            return None
+        except Aggregator.MultipleObjectsReturned:
+            return None
+
     def get_device_by_category_full(self, category: str = "", page: int = None, amount: int = None):
         cat = None
         try:
@@ -557,7 +566,7 @@ class MongoDBIO:
         aggregator.types = types
         return aggregator.save()
 
-    def add_device_web(self, hostname, category, ip="1.1.1.1", ):
+    def add_device_web(self, hostname, category, ip="1.1.1.1"):
         try:
             cat = Category.objects.get({'category': category})
         except Category.DoesNotExist:
@@ -566,7 +575,19 @@ class MongoDBIO:
             return -1
 
         if not self.check_if_device_exsits(hostname):
-            return Device(hostname=hostname, category=cat.pk, ip=ip).save()
+            device = Device(hostname=hostname, category=cat.pk, ip=ip).save()
+
+            if dconfig("single_aggregator_mode", cast=bool, default=False):
+                identifier = dconfig("single_aggregator_identifier", default=None)
+                if identifier:
+                    aggregator = self.get_aggregator_by_identifier(identifier=identifier)
+                    if aggregator:
+                        devices = aggregator.devices
+                        devices.append(device.pk)
+                        aggregator.devices = devices
+                        aggregator.save()
+
+            return device
         return False
 
     def delete_device_web(self, id):
