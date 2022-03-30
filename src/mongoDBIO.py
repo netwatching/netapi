@@ -634,6 +634,11 @@ class MongoDBIO:
             return -1
 
         modules = []
+        if hasattr(dev, "modules"):
+            modules = dev.modules
+
+            if isinstance(modules, list) is False:
+                modules = []
 
         for c in reqconfig:
             type = Type.objects.get({'type': c.type.id})
