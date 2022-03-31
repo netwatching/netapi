@@ -622,7 +622,8 @@ class MongoDBIO:
                     if m.config is not None:
                         value = json.loads(self.crypt.decrypt(m.config, dconfig("cryptokey")))
                         decrypted = decrypted | value
-                    config_out.append(decrypted)
+                        m.config = decrypted
+                    config_out.append(m)
 
         return config_out
 
