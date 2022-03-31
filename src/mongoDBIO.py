@@ -643,7 +643,10 @@ class MongoDBIO:
                 modules = []
 
         for c in reqconfig:
-            type = Type.objects.get({'type': c.type.id})
+            try:
+                type = Type.objects.get({'type': c.type.id})
+            except Type.DoesNotExist:
+                continue
             if c.config:
                 dc = self.crypt.encrypt(c.config, dconfig("cryptokey"))
                 m = Module(type=type, config=dc).save()
@@ -927,7 +930,7 @@ class MongoDBIO:
                             finally:
                                 continue
 
-                        if "id" in vlan and vlan["id"] == vlan_id:
+                        if "id" in vlan and (vlan["id"] == vlan_id or vlan_id == -1):
                             valid_links.append(link)
 
             for link in valid_links:
