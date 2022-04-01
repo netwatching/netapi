@@ -647,12 +647,26 @@ class MongoDBIO:
                 type = Type.objects.get({'type': c.type.id})
             except Type.DoesNotExist:
                 continue
+
             if c.config:
                 dc = self.crypt.encrypt(c.config, dconfig("cryptokey"))
                 m = Module(type=type, config=dc).save()
             else:
                 m = Module(type=type).save()
-            modules.append(m)
+
+            replaced = False
+            index = 0
+            for module in modules:
+                if module.type.pk == type.pk:
+                    replaced = True
+                    break
+                index += 1
+
+            if replaced is False:
+                modules.append(m)
+            else:
+                modules[index] = m
+
         dev.modules = modules
         dev.save()
         return True
@@ -1057,24 +1071,23 @@ class MongoDBIO:
                 description = link["local_port"]
 
                 if interfaces:
-                   for interface in interfaces:
-                       if "port" in interface and description == interface["port"]:
-                           if "is_trunk" in interface and isinstance(interface["is_trunk"], bool):
-                               is_trunk = interface["is_trunk"]
-                           elif "vlans" in interface and isinstance(interface["vlans"], list) and len(
-                                   interface["vlans"] > 1):
-                               is_trunk = True
-                           else:
-                               is_trunk = False
+                    for interface in interfaces:
+                        if "port" in interface and description == interface["port"]:
+                            if "is_trunk" in interface and isinstance(interface["is_trunk"], bool):
+                                is_trunk = interface["is_trunk"]
+                            elif "vlans" in interface and isinstance(interface["vlans"], list) and len(
+                                    interface["vlans"] > 1):
+                                is_trunk = True
+                            else:
+                                is_trunk = False
 
-                           if "vlans" in interface and isinstance(interface["vlans"], list):
+                            if "vlans" in interface and isinstance(interface["vlans"], list):
 
-                               for vlan in interface["vlans"]:
-                                   if "id" in vlan and "name" in vlan:
-                                       vlan_id = vlan["id"]
-                                       vlan_name = vlan["name"]
-                                       vlans.append({"id": vlan_id, "name": vlan_name})
-
+                                for vlan in interface["vlans"]:
+                                    if "id" in vlan and "name" in vlan:
+                                        vlan_id = vlan["id"]
+                                        vlan_name = vlan["name"]
+                                        vlans.append({"id": vlan_id, "name": vlan_name})
 
                 # if interfaces and description in interfaces:
                 #     if "vlan_id" in interfaces[description]:
