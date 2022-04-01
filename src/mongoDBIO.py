@@ -930,7 +930,7 @@ class MongoDBIO:
                             finally:
                                 continue
 
-                        if "id" in vlan and (vlan["id"] == vlan_id or vlan_id == -1):
+                        if "id" in vlan and vlan["id"] == vlan_id:
                             valid_links.append(link)
 
             for link in valid_links:
