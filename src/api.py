@@ -730,6 +730,16 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     return JSONResponse(status_code=200, content=query)
 
 
+@app.delete("/api/modules/{id}", tags=["Modules"])
+async def delete_module_from_device(authorize: AuthJWT = Depends(), id = str):
+    """
+       /modules/{id} - DELETE - delete a specific module from a device
+       """
+    authorize.jwt_required()
+
+    return mongo.delete_module(module_id=id)
+
+
 # --- Exception Handling --- #
 @app.exception_handler(AuthJWTException)
 def authjwt_exception_handler(request: Request, exc: AuthJWTException):

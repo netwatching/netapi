@@ -90,7 +90,19 @@ class MongoDBIO:
             category = Category.objects.get({"category": category})
             category.delete()
             return True
-        except Category.DuplicateKeyError:
+        except Category.DoesNotExist:
+            return False
+        except Category.MultipleObjectsReturned:
+            return False
+
+    def delete_module(self, module_id: str):
+        try:
+            module = Module.objects.get({"_id": ObjectId(module_id)})
+            module.delete()
+            return True
+        except Module.DoesNotExist:
+            return False
+        except Module.MultipleObjectsReturned:
             return False
 
     def get_category_by_category(self, category: str):
