@@ -50,7 +50,7 @@ class TypeID(BaseModel):
     id: str = "ssh"
 
 class Module(BaseModel):
-    config: Optional[str] = '{"timeout": 5}'
+    config: Optional[dict] = {"timeout": 5}
     type: TypeID
 
 

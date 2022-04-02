@@ -679,7 +679,7 @@ class MongoDBIO:
                 continue
 
             if c.config:
-                dc = self.crypt.encrypt(c.config, dconfig("cryptokey"))
+                dc = self.crypt.encrypt(str(c.config), dconfig("cryptokey"))
                 m = Module(type=type, config=dc).save()
             else:
                 m = Module(type=type).save()
