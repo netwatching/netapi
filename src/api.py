@@ -44,7 +44,8 @@ origins = [
     "http://localhost:4200",
     "http://palguin.htl-vil.local",
     "0.0.0.0",
-    "localhost"
+    "localhost",
+    "*"
 ]
 
 app.add_middleware(

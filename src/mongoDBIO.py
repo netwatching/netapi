@@ -646,14 +646,17 @@ class MongoDBIO:
         config_out = []
 
         for t in ag.types:
-            for m in dev.modules:
-                decrypted = json.loads(self.crypt.decrypt(t.config, dconfig("cryptokey")))
-                if t.type == m.type.type:
-                    if m.config is not None:
-                        value = json.loads(self.crypt.decrypt(m.config, dconfig("cryptokey")))
-                        decrypted = decrypted | value
-                        m.config = decrypted
-                    config_out.append(m)
+            if dev.modules:
+                for m in dev.modules:
+                    decrypted = json.loads(self.crypt.decrypt(t.config, dconfig("cryptokey")))
+                    if t.type == m.type.type:
+                        if m.config is not None:
+                            dv = self.crypt.decrypt(m.config, dconfig("cryptokey"))
+                            dv = dv.replace("'", '"')
+                            value = json.loads(dv)
+                            decrypted = decrypted | value
+                            m.config = decrypted
+                        config_out.append(m)
 
         return config_out
 
