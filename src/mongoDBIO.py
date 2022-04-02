@@ -160,8 +160,11 @@ class MongoDBIO:
             return -1
 
     def add_aggregator(self, token: str, identifier):
-        ag = Aggregator(token=token, identifier=identifier).save()
-        return ag
+        try:
+            ag = Aggregator(token=token, identifier=identifier).save()
+            return ag
+        except Aggregator.DuplicateKeyError:
+            return None
 
     def get_aggregator_devices(self, id):
         try:
@@ -604,6 +607,15 @@ class MongoDBIO:
                         devices.append(device.pk)
                         aggregator.devices = devices
                         aggregator.save()
+                    else:
+                        token = dconfig("single_aggregator_token", cast=str, default=None)
+                        if token:
+                            aggregator = self.add_aggregator(token=token, identifier=identifier)
+                            if aggregator:
+                                devices = []
+                                devices.append(devices)
+                                aggregator.devices = devices
+                                aggregator.save()
 
             return device
         return False
