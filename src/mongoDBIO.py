@@ -85,9 +85,9 @@ class MongoDBIO:
         except Category.DuplicateKeyError:
             return False
 
-    def delete_category(self, category: str):
+    def delete_category(self, category_id: str):
         try:
-            category = Category.objects.get({"category": category})
+            category = Category.objects.get({"_id": ObjectId(category_id)})
             category.delete()
             return True
         except Category.DoesNotExist:

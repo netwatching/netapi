@@ -608,14 +608,14 @@ async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends())
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.delete("/api/categories", response_model=AddCategoryOut, tags=["Category"])
-async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends()):
+@app.delete("/api/categories/{id}", response_model=AddCategoryOut, tags=["Category"])
+async def delete_categories(id: str, authorize: AuthJWT = Depends()):
     """
-    /categories - POST - add a new Category to the DB
+    /categories - DELETE - delete a new Category from the DB
     """
     authorize.jwt_required()
 
-    if mongo.delete_category(category=request.category):
+    if mongo.delete_category(category_id=id):
         return AddCategoryOut(detail="success")
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
@@ -693,7 +693,7 @@ async def get_tree(authorize: AuthJWT = Depends(), vlan_id: Optional[int] = None
     return mongo.get_tree(vlan_id)
 
 
-@app.post("/api/devices/filter", response_model=DevicesFilterOut, tags=["Device"])
+@app.get("/api/devices/filter", response_model=DevicesFilterOut, tags=["Device"])
 async def filter_devices(key: str,
                          value: str,
                          page: Optional[int] = None,
