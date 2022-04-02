@@ -94,7 +94,12 @@ class MongoDBIO:
             return False
 
     def get_category_by_category(self, category: str):
-        return Category.objects.get({"category": category})
+        try:
+            return Category.objects.get({"category": category})
+        except Category.DoesNotExist:
+            return None
+        except Category.MultipleObjectsReturned:
+            return None
 
     def add_event(self, device: Device, severity: int, event: str,
                   timestamp: datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')):
@@ -414,10 +419,10 @@ class MongoDBIO:
         return out
 
     def add_data_for_devices(self, devices: list, external_events: dict):
-        try:
-            category = self.get_category_by_category("New")
-        except:
-            category = Category(category="New").save()
+        category = self.get_category_by_category("New")
+
+        if category is None:
+            category = self.add_category(category="New")
 
         for device in devices:
             if "name" not in device:
@@ -1067,6 +1072,7 @@ class MongoDBIO:
                 continue
 
             vlans = []
+            is_trunk = False
             if "local_port" in link:
                 description = link["local_port"]
 
@@ -1078,8 +1084,6 @@ class MongoDBIO:
                             elif "vlans" in interface and isinstance(interface["vlans"], list) and len(
                                     interface["vlans"] > 1):
                                 is_trunk = True
-                            else:
-                                is_trunk = False
 
                             if "vlans" in interface and isinstance(interface["vlans"], list):
 
@@ -1110,6 +1114,7 @@ class MongoDBIO:
 
             if vlans:
                 new_link.vlans = vlans
+                new_link.is_trunk = is_trunk
 
             new_link = self.__save_link__(new_link)
             if new_link:
@@ -1175,6 +1180,10 @@ class MongoDBIO:
                     device = self.get_device_by_hostname(hostname)
                     if isinstance(device, bool) and device is False:
                         category = self.get_category_by_category("New")
+
+                        if category is None:
+                            category = self.add_category(category="New")
+
                         device = self.add_device(hostname=hostname, category=category)
 
                     type = self.redis_indices[i]
