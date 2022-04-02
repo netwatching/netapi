@@ -559,7 +559,8 @@ class MongoDBIO:
         except Device.MultipleObjectsReturned:
             return -1
 
-        for type in aggregator.types:
+        types = aggregator.types
+        for type in types:
             type.delete()
 
         types = []
@@ -691,16 +692,16 @@ class MongoDBIO:
         return False
 
     def get_categories(self):
-        categories = list(Category.objects.order_by([('_id', DESCENDING)]).all())
+        categories = list(Category.objects.order_by([('_id', DESCENDING)]).all().values())
 
         out = []
-        for c in categories:
-            pk = str(c.pk)
-            c = c.to_son().to_dict()
-            c["_id"] = pk
-            out.append(c)
+        for category in categories:
+            category["id"] = str(category.pop("_id"))
+            category.pop("_cls")
+            out.append(category)
 
         return out
+
 
     def get_event_by_id(self, event_id):
         try:
@@ -1213,78 +1214,6 @@ class MongoDBIO:
                 r.flushdb()
 
     # --- Filter --- #
-
-    # Deprecated
-
-    # def filter_devices(self, key: str, value: str, page:int, amount: int, feature: str = None, category: Category = None):
-    #     self.__handle_filter__(key, value, feature, category)
-    #
-    #     if (page is not None and amount is not None) and (page > 0 and amount > 0):
-    #         if category is not None:
-    #             devices = list(Device.objects \
-    #                            .raw({'category': category.pk}) \
-    #                            .order_by([('_id', DESCENDING)]) \
-    #                            .skip((page - 1) * amount) \
-    #                            .limit(amount))
-    #         else:
-    #             devices = list(Device.objects \
-    #                            .order_by([('_id', DESCENDING)]) \
-    #                            .skip((page - 1) * amount) \
-    #                            .limit(amount))
-    #
-    #     elif (page is None or page <= 0) and amount is None:
-    #         if category is not None:
-    #             devices = list(Device.objects \
-    #                            .raw({'category': category.pk}) \
-    #                            .order_by([('_id', DESCENDING)]))
-    #         else:
-    #             devices = list(Device.objects \
-    #                            .order_by([('_id', DESCENDING)]) \
-    #                            .all()
-    #                            .values())
-    #     else:
-    #         return -1
-    #
-    #     filtered = []
-    #     for device in devices:
-    #         if hasattr(device, "static"):
-    #             for data in device.static:
-    #                 if feature and data.key != feature:
-    #                     continue
-    #
-    #                 data_set = data.data
-    #                 if self.__filter_for_key_value__(data_set, key, value):
-    #                     filtered.append({"id": str(device.pk)})
-    #
-    #     return filtered
-    #
-    # def __filter_for_key_value__(self, data_set: dict, key: str, value: str):
-    #     for data_key in data_set:
-    #         data_piece = data_set[data_key]
-    #         if isinstance(data_piece, dict):
-    #             if self.__filter_for_key_value__(data_piece, key, value):
-    #                 return True
-    #         elif isinstance(data_piece, list):
-    #             if str(data_key).lower() == str(key).lower():
-    #                 for data_sub_piece in data_piece:
-    #                     if str(data_sub_piece).lower() == str(value).lower():
-    #                         return True
-    #         else:
-    #             if str(data_key).lower() == str(key).lower() and str(data_piece).lower() == str(value).lower():
-    #                 return True
-    #     return False
-    #
-    # def __handle_filter__(self, key: str, value: str, feature: str = None, category: Category = None):
-    #     try:
-    #         filter = Filter(key=key, value=value)
-    #         if feature:
-    #             filter.feature = feature
-    #         if category:
-    #             filter.category = category
-    #         filter.save()
-    #         return True
-    #     except pymongo.errors.DuplicateKeyError:
-    #         return False
 
     def filter_devices(self, key: str, value: str, page: int = None, amount: int = None, category_id: str = None):
         self.__handle_filter__(key, value)

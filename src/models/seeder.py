@@ -53,6 +53,10 @@ def clear():
     for node in nodes:
         node.delete()
 
+def clear_all():
+    pymongo_client = pymongo.MongoClient(details)
+    pymongo_client.drop_database("netdb")
+
 def seed_categories(count):
     categories = []
     for i in range(0, count):
@@ -178,5 +182,6 @@ def seeder(category_count, device_count, port_count):
         seed_devices(device_count, port_count, category, macs)
 
 
-seeder(category_count, device_count, ports_count)
+#seeder(category_count, device_count, ports_count)
 #clear()
+clear_all()

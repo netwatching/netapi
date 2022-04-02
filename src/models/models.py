@@ -32,6 +32,7 @@ class Settings(BaseModel):
 
 class Category(BaseModel):
     category: str = "Drucka"
+    id: str = "0101010"
 
 
 class AggregatorSmall(BaseModel):
