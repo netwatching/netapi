@@ -572,7 +572,7 @@ async def get_device_config(id: str = None, authorize: AuthJWT = Depends()):
                 c.pop("_cls")
                 configs.append(c)
         if not query_result or query_result == -1:
-            raise HTTPException(status_code=400, detail="No config found")
+            raise HTTPException(status_code=200, detail="No config found")
         return DeviceConfigOut(configs=configs)
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 

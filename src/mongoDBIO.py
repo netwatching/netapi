@@ -116,11 +116,13 @@ class MongoDBIO:
 
                 new_modules = []
 
-                for module in modules:
-                    if module.pk != ObjectId(module_id):
-                        new_modules.append(module)
-                    else:
-                        module.delete()
+                if modules:
+                    for module in modules:
+                        if module and hasattr(module, "pk"):
+                            if module.pk != ObjectId(module_id):
+                                new_modules.append(module)
+                            else:
+                                module.delete()
 
                 device.modules = new_modules
                 device.save()
