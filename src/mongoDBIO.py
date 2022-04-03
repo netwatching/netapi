@@ -1430,3 +1430,12 @@ class MongoDBIO:
             filters.append(filter)
 
         return filters
+
+    def first_start(self):
+        category_switch = self.get_category_by_category("Switch")
+        if category_switch is None:
+            self.add_category(category="Switch")
+
+        category_zabbix = self.get_category_by_category("Zabbix")
+        if category_zabbix is None:
+            self.add_category(category="Zabbix")

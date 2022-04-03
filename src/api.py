@@ -40,6 +40,8 @@ crypt = Crypt()
 mongo = MongoDBIO(
     details=f'mongodb://{config("mDBuser")}:{config("mDBpassword")}@{config("mDBurl")}:{config("mDBport")}/{config("mDBdatabase")}?authSource=admin')
 
+mongo.first_start()
+
 origins = [
     "http://localhost:4200",
     "http://palguin.htl-vil.local",
