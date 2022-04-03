@@ -1025,34 +1025,19 @@ class MongoDBIO:
                 LinkJson(
                     source=source_node.hostname,
                     target=target_node.hostname,
-                    # source_mac=source_link.mac,
-                    # source_description=source_link.description,
-                    # target_mac=target_link.mac,
-                    # target_description=target_link.description
                 )
             )
-            # if hasattr(source_node, "ip"):
-            #     source_ip = source_node.ip
-            # else:
-            #     source_ip = None
-            #
-            # if hasattr(target_node, "ip"):
-            #     target_ip = target_node.ip
-            # else:
-            #     target_ip = None
 
             nodes.append(
                 NodeJson(
                     id=source_node.hostname,
                     device_id=str(source_device_id)
-                    # ip=source_ip
                 )
             )
             nodes.append(
                 NodeJson(
                     id=target_node.hostname,
                     device_id=str(target_device_id)
-                    # ip=target_ip
                 )
             )
 
@@ -1141,13 +1126,6 @@ class MongoDBIO:
                                         vlan_name = vlan["name"]
                                         vlans.append({"id": vlan_id, "name": vlan_name})
 
-                # if interfaces and description in interfaces:
-                #     if "vlan_id" in interfaces[description]:
-                #         vlan_id = interfaces[description]["vlan_id"]
-                #         if self.__is_int__(vlan_id):
-                #             vlan_id = int(vlan_id)
-                #         else:
-                #             vlan_id = None
             else:
                 continue
 
