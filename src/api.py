@@ -754,7 +754,7 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     return JSONResponse(status_code=200, content=query)
 
 
-@app.delete("/api/devices/{device_id}}/module/{module_id}", tags=["Modules"], response_model=AddCategoryOut)
+@app.delete("/api/devices/{device_id}/module/{module_id}", tags=["Modules"], response_model=AddCategoryOut)
 async def delete_module_from_device(module_id: str, device_id: str, authorize: AuthJWT = Depends()):
     """
        /modules/{id} - DELETE - delete a specific module from a device
