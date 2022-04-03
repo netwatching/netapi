@@ -104,11 +104,12 @@ class MongoDBIO:
             return False
 
         if device:
-            if hasattr(device, "modules"):
+            if hasattr(device, "modules") and device.modules:
                 modules = device.modules
 
                 if len(modules) <= 1:
-                    return False
+                    Device.objects.raw({'_id': ObjectId(device_id)}).update({"$set": {"modules": []}})
+                    return True
 
                 new_modules = []
 
@@ -682,8 +683,9 @@ class MongoDBIO:
 
         config_out = []
 
+
         for t in ag.types:
-            if dev.modules:
+            if hasattr(dev, "modules") and dev.modules:
                 for m in dev.modules:
                     decrypted = json.loads(self.crypt.decrypt(t.config, dconfig("cryptokey")))
                     if t.type == m.type.type:
