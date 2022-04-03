@@ -95,15 +95,33 @@ class MongoDBIO:
         except Category.MultipleObjectsReturned:
             return False
 
-    def delete_module(self, module_id: str):
+    def delete_module(self, module_id: str, device_id: str):
         try:
-            module = Module.objects.get({"_id": ObjectId(module_id)})
-            module.delete()
-            return True
-        except Module.DoesNotExist:
+            device = Device.objects.get({'_id': ObjectId(device_id)})
+        except Device.DoesNotExist:
             return False
-        except Module.MultipleObjectsReturned:
+        except Device.MultipleObjectsReturned:
             return False
+
+        if device:
+            if hasattr(device, "modules"):
+                modules = device.modules
+
+                if len(modules) <= 1:
+                    return False
+
+                new_modules = []
+
+                for module in modules:
+                    if module.pk != ObjectId(module_id):
+                        new_modules.append(module)
+                    else:
+                        module.delete()
+
+                device.modules = new_modules
+                device.save()
+        return True
+
 
     def get_category_by_category(self, category: str):
         try:

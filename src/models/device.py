@@ -24,7 +24,7 @@ class Device(MongoModel):
     category = fields.ReferenceField(Category, required=False, on_delete=ReferenceField.NULLIFY)
     static = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.NULLIFY))
     live = fields.ListField(fields.ReferenceField(Data, on_delete=ReferenceField.NULLIFY))
-    modules = fields.ListField(fields.ReferenceField(Module, on_delete=ReferenceField.NULLIFY), required=False)
+    modules = fields.ListField(fields.ReferenceField(Module), required=False)
 
     class Meta:
         indexes = [

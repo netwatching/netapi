@@ -590,20 +590,20 @@ async def add_device_config(id: str, request: SetConfig, authorize: AuthJWT = De
         raise HTTPException(status_code=400, detail="Failed")
     return AddCategoryOut(detail="success")
 
-
-@app.delete("/api/devices/{id}/config/{module}", tags=["Device"], response_model=AddCategoryOut)
-async def remove_module_from_device(id: str, module: str, authorize: AuthJWT = Depends()):
-    """
-    /devices/{id}/config/{module} - DELETE - remove a Module from a Device
-    """
-    authorize.jwt_required()
-
-    if id and module:
-        id = ObjectId(id)
-        result = mongo.delete_device_config(id, module)
-        if result:
-            return AddCategoryOut(detail="success")
-    raise HTTPException(status_code=400, detail=BAD_PARAM)
+# Do not use
+# @app.delete("/api/devices/{id}/config/{module}", tags=["Device"], response_model=AddCategoryOut)
+# async def remove_module_from_device(id: str, module: str, authorize: AuthJWT = Depends()):
+#     """
+#     /devices/{id}/config/{module} - DELETE - remove a Module from a Device
+#     """
+#     authorize.jwt_required()
+#
+#     if id and module:
+#         id = ObjectId(id)
+#         result = mongo.delete_device_config(id, module)
+#         if result:
+#             return AddCategoryOut(detail="success")
+#     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
 # --- Category --- #
@@ -753,14 +753,14 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     return JSONResponse(status_code=200, content=query)
 
 
-@app.delete("/api/modules/{id}", tags=["Modules"], response_model=AddCategoryOut)
-async def delete_module_from_device(authorize: AuthJWT = Depends(), id = str):
+@app.delete("/api/devices/{device_id}}/module/{module_id}", tags=["Modules"], response_model=AddCategoryOut)
+async def delete_module_from_device(authorize: AuthJWT = Depends(), module_id = str, device_id = str):
     """
        /modules/{id} - DELETE - delete a specific module from a device
        """
     authorize.jwt_required()
 
-    query_result = mongo.delete_module(module_id=id)
+    query_result = mongo.delete_module(module_id=module_id, device_id=device_id)
 
     if not query_result or query_result == -1:
         raise HTTPException(status_code=400, detail="Not found")
