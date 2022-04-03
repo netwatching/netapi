@@ -107,9 +107,12 @@ class MongoDBIO:
             if hasattr(device, "modules") and device.modules:
                 modules = device.modules
 
-                if len(modules) <= 1:
+                if len(modules) == 1:
                     Device.objects.raw({'_id': ObjectId(device_id)}).update({"$set": {"modules": []}})
+                    modules[0].delete()
                     return True
+                elif len(modules) == 0:
+                    return False
 
                 new_modules = []
 
