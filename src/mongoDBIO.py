@@ -1189,6 +1189,9 @@ class MongoDBIO:
 
             port_data = live_data[port]
             for key in port_data:
+                if isinstance(key, str) is False:
+                    continue
+
                 database_index = self.redis_indices.index(key)
 
                 if database_index != -1:
