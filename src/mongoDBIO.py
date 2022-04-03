@@ -708,11 +708,8 @@ class MongoDBIO:
             return -1
 
         modules = []
-        if hasattr(dev, "modules"):
+        if hasattr(dev, "modules") and dev.modules and isinstance(dev.modules, list):
             modules = dev.modules
-
-            if isinstance(modules, list) is False:
-                modules = []
 
         for c in reqconfig:
             try:
