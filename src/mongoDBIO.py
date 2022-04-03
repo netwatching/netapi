@@ -574,18 +574,52 @@ class MongoDBIO:
         except Device.MultipleObjectsReturned:
             return -1
 
-        types = aggregator.types
-        for type in types:
-            type.delete()
-
         types = []
-        for t in modules:
-            type = Type(type=t.id, signature=t.config_signature,
-                        config=self.crypt.encrypt(json.dumps(t.config_fields), dconfig("cryptokey"))).save()
-            types.append(type)
+        if hasattr(aggregator, "types"):
+            types = aggregator.types
+            # type = Type(type=t.id, signature=t.config_signature,
+            #             config=self.crypt.encrypt(json.dumps(t.config_fields), dconfig("cryptokey"))).save()
 
-        aggregator.types = types
-        return aggregator.save()
+        types_to_add = []
+        already_inserted = []
+        for type in types:
+            is_obsolete = True
+            for new_type in modules:
+                if new_type.id == type.type:
+                    type.signature = new_type.config_signature
+                    type.config = self.crypt.encrypt(json.dumps(new_type.config_fields), dconfig("cryptokey"))
+                    type.save()
+                    is_obsolete = False
+                    already_inserted.append(new_type.id)
+                    break
+            if is_obsolete is False:
+                types_to_add.append(type)
+
+        new_types = []
+
+        for new_type in modules:
+            if new_type.id not in already_inserted:
+                type = Type(type=new_type.id, signature=new_type.config_signature,
+                            config=self.crypt.encrypt(json.dumps(new_type.config_fields), dconfig("cryptokey"))).save()
+                new_types.append(type)
+
+        types_to_add.extend(new_types)
+        if types_to_add:
+            aggregator.types = types_to_add
+        aggregator.save()
+
+
+        for type in types:
+            is_obsolete = True
+            for new_type in types_to_add:
+                if type.pk == new_type.pk:
+                    is_obsolete = False
+                    break
+            if is_obsolete:
+                type.delete()
+
+        return True
+
 
     def add_device_web(self, hostname, category, ip="1.1.1.1"):
         try:
@@ -1219,7 +1253,8 @@ class MongoDBIO:
                     avg_score = 0
                     for score in scores:
                         avg_score += score[1]
-                        if score[1] >= 21:
+                        #if score[1] >= 10:
+                        if False:
 
                             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             event_time = str(score[0], "utf-8")
@@ -1318,11 +1353,23 @@ class MongoDBIO:
 
         if is_page:
             devices = list(
-                devices_raw.aggregate({"$match": {
-                    "static": {"$in": page_ids}}},
+                devices_raw.aggregate(
                     {
-                        "$project": {"_id": 1, "hostname": 1, "ip": 1, "category": 1},
-                    })
+                        "$match": {
+                            "static": {
+                                "$in": page_ids
+                            }
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "hostname": 1,
+                            "ip": 1,
+                            "category": 1
+                        },
+                    }
+                )
             )
         else:
             devices = list(
