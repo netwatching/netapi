@@ -559,7 +559,8 @@ async def get_device_config(id: str = None, authorize: AuthJWT = Depends()):
                 name = c.type.type
                 type = c.type.to_son().to_dict()
                 type.pop("_id")
-                type["config"] = crypt.decrypt(type["config"], config("cryptokey"))
+                conf = crypt.decrypt(type["config"], config("cryptokey"))
+                type["config"] = conf.replace('"', "'")
                 if c.config is None:
                     c.config = []
                 c = c.to_son().to_dict()
