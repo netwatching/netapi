@@ -284,9 +284,9 @@ class MongoDBIO:
             category = Category.objects.get({'_id': id})
             return category
         except Category.DoesNotExist:
-            return False
+            return None
         except Category.MultipleObjectsReturned:
-            return -1
+            return None
 
     def get_aggregator_by_identifier(self, identifier: str):
         try:

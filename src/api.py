@@ -283,17 +283,22 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
     for d in devices:
 
         d = d.to_son().to_dict()
-        id_ = d["_id"]
-        d["id"] = str(id_)
-        d.pop("_id")
+        d["id"] = str(d.pop("_id"))
         if "category" in d:
             category = mongo.get_category_by_id(d["category"])
-            category = category.category
-            d["type"] = category
-        d.pop("category")
+            if category:
+                category = category.category
+                d["category"] = category
         d["timeout"] = 10
 
-        id = ObjectId(str(id_))
+        if "static" in d:
+            d.pop("static")
+
+        if "live" in d:
+            d.pop("live")
+
+
+        id = ObjectId(str(d["id"]))
         query_result = mongo.get_device_config(id)
         configs = []
         if not False:
