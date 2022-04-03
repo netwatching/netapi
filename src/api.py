@@ -215,7 +215,7 @@ async def aggregator_login(request: ServiceAggregatorLogin, authorize: AuthJWT =
 @app.post("/api/aggregator-refresh", response_model=ServiceLoginOut, tags=["Authentication"])
 async def aggregator_refresh(authorize: AuthJWT = Depends()):
     """
-    /aggregator-login - POST - aggregator login with token
+    /aggregator-refresh - POST - aggregator login with token
     """
     authorize.jwt_refresh_token_required()
     current_user = authorize.get_jwt_subject()
@@ -343,7 +343,7 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
         try:
             modules = request.modules
         except KeyError:
-            raise HTTPException(status_code=400, detail="Bad Parameter")
+            raise HTTPException(status_code=400, detail=BAD_PARAM)
 
         id = ObjectId(id)
         mongo.insert_aggregator_modules(modules, id)
@@ -352,9 +352,9 @@ async def aggregator_modules(request: AggregatorModulesIn, id: str = "", authori
 
 
 @app.get("/api/aggregators", response_model=AggregatorsOut, tags=["Aggregator"])
-async def get_aggregator_by_id(authorize: AuthJWT = Depends()):
+async def get_aggregators(authorize: AuthJWT = Depends()):
     """
-    /aggregator/{id} - GET - returns devices belonging to the aggregator
+    /aggregators - GET - returns all aggregators
     """
     authorize.jwt_required()
 
@@ -374,7 +374,7 @@ async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT 
         ag = request.aggregator
         dev = request.device
     except KeyError:
-        raise HTTPException(status_code=400, detail="Bad Parameter")
+        raise HTTPException(status_code=400, detail=BAD_PARAM)
 
     db_result = mongo.set_aggregator_device(ag, dev)
 
@@ -531,7 +531,7 @@ async def add_device(request: AddDeviceIn, authorize: AuthJWT = Depends()):
 @app.delete("/api/devices/{id}", response_model=AddDeviceOut, tags=["Device"])
 async def delete_device(id: str, authorize: AuthJWT = Depends()):
     """
-    /devices - POST - deletes a new device to the DB
+    /devices/{id} - DELETE - deletes a device from the DB
     """
     authorize.jwt_required()
 
@@ -574,7 +574,7 @@ async def get_device_config(id: str = None, authorize: AuthJWT = Depends()):
     raise HTTPException(status_code=400, detail=BAD_PARAM)
 
 
-@app.post("/api/devices/{id}/config", tags=["Device"])
+@app.post("/api/devices/{id}/config", response_model=AddCategoryOut, tags=["Device"])
 async def add_device_config(id: str, request: SetConfig, authorize: AuthJWT = Depends()):
     """
     /devices/{id}/config - POST - adds a new device config to the DB
@@ -582,14 +582,17 @@ async def add_device_config(id: str, request: SetConfig, authorize: AuthJWT = De
     authorize.jwt_required()
 
     id = ObjectId(id)
-    return mongo.set_device_config(id, request.config)
-    # raise HTTPException(status_code=400, detail=BAD_PARAM)
+    query_result = mongo.set_device_config(id, request.config)
+
+    if not query_result or query_result == -1:
+        raise HTTPException(status_code=400, detail="Failed")
+    return AddCategoryOut(detail="success")
 
 
 @app.delete("/api/devices/{id}/config/{module}", tags=["Device"], response_model=AddCategoryOut)
-async def add_device(id: str, module: str, authorize: AuthJWT = Depends()):
+async def remove_module_from_device(id: str, module: str, authorize: AuthJWT = Depends()):
     """
-    /devices/{id}/config - POST - adds a new device config to the DB
+    /devices/{id}/config/{module} - DELETE - remove a Module from a Device
     """
     authorize.jwt_required()
 
@@ -629,7 +632,7 @@ async def add_categories(request: AddCategoryIn, authorize: AuthJWT = Depends())
 @app.delete("/api/categories/{id}", response_model=AddCategoryOut, tags=["Category"])
 async def delete_categories(id: str, authorize: AuthJWT = Depends()):
     """
-    /categories - DELETE - delete a new Category from the DB
+    /categories/{id} - DELETE - delete a Category from the DB
     """
     authorize.jwt_required()
 
@@ -720,7 +723,7 @@ async def filter_devices(key: str,
                          authorize: AuthJWT = Depends()
                          ):
     """
-    /devices/filter/ - GET - get filtered devices
+    /devices/filter - GET - get filtered devices
     """
     authorize.jwt_required()
 
@@ -728,9 +731,9 @@ async def filter_devices(key: str,
 
 
 @app.get("/api/filter", response_model=FilterOut, tags=["Device"])
-async def filter_devices(authorize: AuthJWT = Depends()):
+async def get_filters(authorize: AuthJWT = Depends()):
     """
-    /filter/ - GET - get filter
+    /filter - GET - get filter
     """
     authorize.jwt_required()
 
@@ -748,14 +751,19 @@ async def get_all_modules(authorize: AuthJWT = Depends()):
     return JSONResponse(status_code=200, content=query)
 
 
-@app.delete("/api/modules/{id}", tags=["Modules"])
+@app.delete("/api/modules/{id}", tags=["Modules"], response_model=AddCategoryOut)
 async def delete_module_from_device(authorize: AuthJWT = Depends(), id = str):
     """
        /modules/{id} - DELETE - delete a specific module from a device
        """
     authorize.jwt_required()
 
-    return mongo.delete_module(module_id=id)
+    query_result = mongo.delete_module(module_id=id)
+
+    if not query_result or query_result == -1:
+        raise HTTPException(status_code=400, detail="Not found")
+    return AddCategoryOut(detail="success")
+
 
 
 # --- Exception Handling --- #
