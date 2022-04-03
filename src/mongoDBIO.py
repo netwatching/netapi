@@ -647,7 +647,7 @@ class MongoDBIO:
                             aggregator = self.add_aggregator(token=token, identifier=identifier)
                             if aggregator:
                                 devices = []
-                                devices.append(devices)
+                                devices.append(device.pk)
                                 aggregator.devices = devices
                                 aggregator.save()
 
@@ -734,8 +734,9 @@ class MongoDBIO:
             else:
                 modules[index] = m
 
-        dev.modules = modules
-        dev.save()
+        if modules:
+            dev.modules = modules
+            dev.save()
         return True
 
     def delete_device_config(self, id, type):
