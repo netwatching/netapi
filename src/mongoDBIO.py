@@ -284,7 +284,7 @@ class MongoDBIO:
         out["total"] = total
 
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
-            if categories is not None:
+            if categories:
                 devices = list(Device.objects \
                                .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)]) \
@@ -297,7 +297,7 @@ class MongoDBIO:
                                .limit(amount))
 
         elif (page is None or page <= 0) and amount is None:
-            if categories is not None:
+            if categories:
                 devices = list(Device.objects \
                                .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)]))
@@ -362,8 +362,9 @@ class MongoDBIO:
         out["amount"] = amount
         out["total"] = total
 
+
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
-            if categories is not None:
+            if categories:
                 devices = list(Device.objects \
                                .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)]) \

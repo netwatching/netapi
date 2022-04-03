@@ -387,7 +387,7 @@ async def link_device_to_aggregator(request: LinkAgDeviceIN, authorize: AuthJWT 
 # --- DEVICES --- #
 @app.get("/api/devices/all", response_model=GetAllDevicesOut, tags=["Device"])
 async def get_devices_by_category_full(
-        category: Optional[str] = "",
+        category: Optional[str] = None,
         page: Optional[int] = None,
         amount: Optional[int] = None,
         authorize: AuthJWT = Depends()
@@ -399,12 +399,13 @@ async def get_devices_by_category_full(
     authorize.jwt_required()
 
     categories = []
-    if "_" in category:
+    if category and "_" in category:
         temps = category.split("_")
         for temp in temps:
             categories.append(ObjectId(temp))
     else:
-        categories.append(ObjectId(category))
+        if category:
+            categories.append(ObjectId(category))
 
     result = mongo.get_device_by_category_full(categories=categories, page=page, amount=amount)
     if result == -1 or result is False:
@@ -414,7 +415,7 @@ async def get_devices_by_category_full(
 
 @app.get("/api/devices", response_model=GetAllDevicesOut, tags=["Device"])
 async def get_devices_by_category(
-        category: Optional[str] = "",
+        category: Optional[str] = None,
         page: Optional[int] = None,
         amount: Optional[int] = None,
         authorize: AuthJWT = Depends()
@@ -426,12 +427,13 @@ async def get_devices_by_category(
     authorize.jwt_required()
 
     categories = []
-    if "_" in category:
+    if category and "_" in category:
         temps = category.split("_")
         for temp in temps:
             categories.append(ObjectId(temp))
     else:
-        categories.append(ObjectId(category))
+        if category:
+            categories.append(ObjectId(category))
 
     result = mongo.get_device_by_category(categories=categories, page=page, amount=amount)
     if result == -1 or result is False:
