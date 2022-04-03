@@ -398,7 +398,15 @@ async def get_devices_by_category_full(
 
     authorize.jwt_required()
 
-    result = mongo.get_device_by_category_full(category=category, page=page, amount=amount)
+    categories = []
+    if "_" in category:
+        temps = category.split("_")
+        for temp in temps:
+            categories.append(ObjectId(temp))
+    else:
+        categories.append(ObjectId(category))
+
+    result = mongo.get_device_by_category_full(categories=categories, page=page, amount=amount)
     if result == -1 or result is False:
         raise HTTPException(status_code=400, detail="Error occurred")
     return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
@@ -417,7 +425,15 @@ async def get_devices_by_category(
 
     authorize.jwt_required()
 
-    result = mongo.get_device_by_category(category=category, page=page, amount=amount)
+    categories = []
+    if "_" in category:
+        temps = category.split("_")
+        for temp in temps:
+            categories.append(ObjectId(temp))
+    else:
+        categories.append(ObjectId(category))
+
+    result = mongo.get_device_by_category(categories=categories, page=page, amount=amount)
     if result == -1 or result is False:
         raise HTTPException(status_code=400, detail="Error occurred")
     return GetAllDevicesOut(page=page, amount=amount, total=result["total"], devices=result["devices"])
@@ -594,7 +610,6 @@ async def get_all_categories(authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
     result = mongo.get_categories()
-    print(result)
 
     return GetCategoriesOut(categories=result)
 

@@ -273,19 +273,10 @@ class MongoDBIO:
         except Aggregator.MultipleObjectsReturned:
             return None
 
-    def get_device_by_category_full(self, category: str = "", page: int = None, amount: int = None):
-        cat = None
-        try:
-            if category != "":
-                cat = Category.objects.get({'category': category})
-        except Category.DoesNotExist:
-            return False
-        except Category.MultipleObjectsReturned:
-            return -1
-
+    def get_device_by_category_full(self, categories: list = None, page: int = None, amount: int = None):
         out = {}
-        if cat is not None:
-            total = Device.objects.raw({'category': cat.pk}).count()
+        if categories:
+            total = Device.objects.raw({'category': {"$in": categories}}).count()
         else:
             total = Device.objects.all().count()
         out["page"] = page
@@ -293,9 +284,9 @@ class MongoDBIO:
         out["total"] = total
 
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
-            if cat is not None:
+            if categories is not None:
                 devices = list(Device.objects \
-                               .raw({'category': cat.pk}) \
+                               .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)]) \
                                .skip((page - 1) * amount) \
                                .limit(amount))
@@ -306,9 +297,9 @@ class MongoDBIO:
                                .limit(amount))
 
         elif (page is None or page <= 0) and amount is None:
-            if cat is not None:
+            if categories is not None:
                 devices = list(Device.objects \
-                               .raw({'category': cat.pk}) \
+                               .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)]))
             else:
                 devices = list(Device.objects \
@@ -339,8 +330,10 @@ class MongoDBIO:
 
             if hasattr(d, "modules"):
                 for m in d.modules:
+                    type = m.type.type
                     r = m.to_son().to_dict()
                     r.pop('_id')
+                    r["type"] = type
                     modules.append(r)
 
             d = d.to_son().to_dict()
@@ -359,19 +352,10 @@ class MongoDBIO:
         out["devices"] = devs
         return out
 
-    def get_device_by_category(self, category: str = "", page: int = None, amount: int = None):
-        cat = None
-        try:
-            if category != "":
-                cat = Category.objects.get({'category': category})
-        except Category.DoesNotExist:
-            return False
-        except Category.MultipleObjectsReturned:
-            return -1
-
+    def get_device_by_category(self, categories: list = None, page: int = None, amount: int = None):
         out = {}
-        if cat is not None:
-            total = Device.objects.raw({'category': cat.pk}).count()
+        if categories:
+            total = Device.objects.raw({'category': {"$in": categories}}).count()
         else:
             total = Device.objects.all().count()
         out["page"] = page
@@ -379,9 +363,9 @@ class MongoDBIO:
         out["total"] = total
 
         if (page is not None and amount is not None) and (page > 0 and amount > 0):
-            if cat is not None:
+            if categories is not None:
                 devices = list(Device.objects \
-                               .raw({'category': cat.pk}) \
+                               .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)]) \
                                .skip((page - 1) * amount) \
                                .limit(amount)
@@ -394,9 +378,9 @@ class MongoDBIO:
                                .values())
 
         elif (page is None or page <= 0) and amount is None:
-            if cat is not None:
+            if categories is not None:
                 devices = list(Device.objects \
-                               .raw({'category': cat.pk}) \
+                               .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)])
                                .values())
             else:
