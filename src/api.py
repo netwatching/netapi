@@ -285,10 +285,10 @@ async def get_aggregator_by_id(id: str = "", authorize: AuthJWT = Depends()):
         d = d.to_son().to_dict()
         d["id"] = str(d.pop("_id"))
         if "category" in d:
-            category = mongo.get_category_by_id(d["category"])
+            category = mongo.get_category_by_id(d.pop("category"))
             if category:
                 category = category.category
-                # This has to be named typed. IDK why but just let it be 
+                # This has to be named typed. IDK why but just let it be
                 d["type"] = category
         d["timeout"] = 10
 
