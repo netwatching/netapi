@@ -1136,7 +1136,8 @@ class MongoDBIO:
                         if "port" in interface and description == interface["port"]:
                             if "is_trunk" in interface and isinstance(interface["is_trunk"], bool):
                                 is_trunk = interface["is_trunk"]
-                            elif "vlans" in interface and isinstance(interface["vlans"], list) and len(
+
+                            if "vlans" in interface and isinstance(interface["vlans"], list) and len(
                                     interface["vlans"] > 1):
                                 is_trunk = True
 
