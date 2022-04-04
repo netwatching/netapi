@@ -242,8 +242,12 @@ class MongoDBIO:
                 d["category"] = category
             if "static" in d:
                 d["static"] = static
+            else:
+                d["static"] = {}
             if "live" in d:
                 d["live"] = live
+            else:
+                d["live"] = {}
             if "modules" in d:
                 d["modules"] = modules
 
