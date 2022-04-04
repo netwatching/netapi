@@ -24,7 +24,7 @@ from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginO
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
     GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut, DeviceConfigOut, DeleteConfig, \
-    UpdateDevice
+    UpdateDevice, UpdateCategory
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -800,6 +800,22 @@ async def get_devices_by_category(
         return JSONResponse(status_code=200, content="Success")
     raise HTTPException(status_code=400, detail="Failed")
 
+
+@app.put("/api/categories/{id}", tags=["Category"])
+async def get_devices_by_category(
+        request: UpdateCategory,
+        id: str,
+        authorize: AuthJWT = Depends()
+):
+    """
+    /devices - PUT - update a category
+    """
+
+    authorize.jwt_required()
+
+    if mongo.update_category(id=id, category=request.category):
+        return JSONResponse(status_code=200, content="Success")
+    raise HTTPException(status_code=400, detail="Failed")
 
 # --- Exception Handling --- #
 @app.exception_handler(AuthJWTException)

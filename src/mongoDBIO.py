@@ -579,7 +579,7 @@ class MongoDBIO:
         return aggregator.save()
 
     def update_device(self, id: str, hostname: str = None, ip: str = None, category: str = None):
-        if self.check_if_device_exsits_by_id(id) is False:
+        if self.check_if_device_exists_by_id(id) is False:
             return False
         id = ObjectId(id)
         update = {}
@@ -590,21 +590,40 @@ class MongoDBIO:
         if ip:
             update["ip"] = ip
         if category:
-            if self.check_if_category_exsits(category_id=category) is False:
+            if self.check_if_category_exists(category_id=category) is False:
                 return False
             update["category"] = ObjectId(category)
 
         Device.objects.raw({"_id": id}).update({"$set": update})
         return True
 
-    def check_if_category_exsits(self, category_id: str):
+    def update_category(self, id: str, category: str):
+        if self.check_if_category_exists(category_id=id) is False:
+            return False
+
+        if self.check_if_category_exists_by_name(category=category):
+            return False
+
+        update = {"category": category}
+        id = ObjectId(id)
+        Category.objects.raw({"_id": id}).update({"$set": update})
+        return True
+
+    def check_if_category_exists(self, category_id: str):
         count = Category.objects.raw({"_id": ObjectId(category_id)}).count()
         if count == 0:
             return False
         else:
             return True
 
-    def check_if_device_exsits_by_id(self, id: str):
+    def check_if_category_exists_by_name(self, category: str):
+        count = Category.objects.raw({"category": category}).count()
+        if count == 0:
+            return False
+        else:
+            return True
+
+    def check_if_device_exists_by_id(self, id: str):
         count = Device.objects.raw({"_id": ObjectId(id)}).count()
         if count == 0:
             return False

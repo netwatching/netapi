@@ -39,6 +39,9 @@ class UpdateDevice(BaseModel):
     category: Optional[str]
     ip: Optional[str]
 
+class UpdateCategory(BaseModel):
+    category: str
+
 
 class AggregatorSmall(BaseModel):
     version: str = "1.0"
