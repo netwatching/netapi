@@ -965,6 +965,30 @@ class MongoDBIO:
             return True
         return False
 
+    async def keep_connections(self):
+        while True:
+            await asyncio.sleep(60)
+
+            links = list(Link.objects.order_by([['mac', DESCENDING]]).all())
+
+            for source in links:
+                try:
+                    query = {
+                        "mac": f"{source.remote_mac}",
+                        "remote_mac": f"{source.mac}"
+                    }
+                    target = Link.objects.get(query)
+                except Link.DoesNotExist:
+                    return
+                except Link.MultipleObjectsReturned:
+                    return
+
+                connection = Connection(source=source, target=target)
+                if self.__check_if_connection_exists__(connection=connection) is False:
+                    connection.save()
+
+
+
     def __create_connections__(self, source: Link):
         try:
             query = {
@@ -1137,8 +1161,7 @@ class MongoDBIO:
                             if "is_trunk" in interface and isinstance(interface["is_trunk"], bool):
                                 is_trunk = interface["is_trunk"]
 
-                            if "vlans" in interface and isinstance(interface["vlans"], list) and len(
-                                    interface["vlans"] > 1):
+                            if "vlans" in interface and isinstance(interface["vlans"], list) and len(interface["vlans"]) > 1:
                                 is_trunk = True
 
                             if "vlans" in interface and isinstance(interface["vlans"], list):
