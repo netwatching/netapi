@@ -243,11 +243,11 @@ class MongoDBIO:
             if "static" in d:
                 d["static"] = static
             else:
-                d["static"] = {}
+                d["static"] = []
             if "live" in d:
                 d["live"] = live
             else:
-                d["live"] = {}
+                d["live"] = []
             if "modules" in d:
                 d["modules"] = modules
 
