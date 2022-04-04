@@ -490,34 +490,34 @@ async def get_alerts_by_device(
     if severity:
         severities = severity.split('_')
 
-        for severity in severities:
-            if severity is not None and mongo.checkInt(severity):
-                severity = int(severity)
-            else:
-                severity = None
+        new_sevs = []
+        if severities:
+            for sev in severities:
+                if mongo.__is_int__(sev):
+                    new_sevs.append(int(sev))
 
-            current_events = mongo.get_events(page=page,
-                                              amount=amount,
-                                              min_severity=min_severity,
-                                              severity=severity,
-                                              device_id=id)
-            if isinstance(current_events, bool) is False and current_events is not False:
-                events = current_events
-    else:
-        if severity is not None and mongo.checkInt(severity):
-            severity = int(severity)
-        else:
-            severity = None
 
         current_events = mongo.get_events(page=page,
                                           amount=amount,
                                           min_severity=min_severity,
-                                          severity=severity,
+                                          severities=new_sevs,
+                                          device_id=id)
+        if isinstance(current_events, bool) is False and current_events is not False:
+            events = current_events
+    else:
+        severity = None
+
+
+        current_events = mongo.get_events(page=page,
+                                          amount=amount,
+                                          min_severity=min_severity,
+                                          severities=severity,
                                           device_id=id)
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    total = mongo.get_event_count(device_id=id, severity=severity)
+    #total = mongo.get_event_count(device_id=id, severities=severities, min_severity=min_severity)
+    total = len(events)
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
@@ -668,32 +668,30 @@ async def get_all_alerts(
     if severity:
         severities = severity.split('_')
 
-        for severity in severities:
-            if severity is not None and mongo.checkInt(severity):
-                severity = int(severity)
-            else:
-                severity = None
-
-            current_events = mongo.get_events(page=page,
-                                              amount=amount,
-                                              min_severity=min_severity,
-                                              severity=severity)
-            if isinstance(current_events, bool) is False and current_events is not False:
-                events = current_events
-    else:
-        if severity is not None and mongo.checkInt(severity):
-            severity = int(severity)
-        else:
-            severity = None
+        new_sevs = []
+        if severities:
+            for sev in severities:
+                if mongo.__is_int__(sev):
+                    new_sevs.append(int(sev))
 
         current_events = mongo.get_events(page=page,
                                           amount=amount,
                                           min_severity=min_severity,
-                                          severity=severity)
+                                          severities=new_sevs)
+        if isinstance(current_events, bool) is False and current_events is not False:
+            events = current_events
+    else:
+        severity = None
+
+        current_events = mongo.get_events(page=page,
+                                          amount=amount,
+                                          min_severity=min_severity,
+                                          severities=severity)
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    total = mongo.get_event_count(severity=severity)
+    #total = mongo.get_event_count(severities=severities, min_severity=min_severity)
+    total = len(events)
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")

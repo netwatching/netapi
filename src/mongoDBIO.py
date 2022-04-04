@@ -798,35 +798,37 @@ class MongoDBIO:
         except pymongo.errors.InvalidId:
             return False
 
-    def get_event_count(self, device_id: str = None, severity: int = None):
+    def get_event_count(self, device_id: str = None, severities: list = None, min_severity: int = None):
+        if min_severity:
+            severities = None
+
         if device_id is not None:
-            if severity:
-                device_id = ObjectId(device_id)
-                total = Event.objects.raw({'device': device_id, "severity": severity}).count()
+            device_id = ObjectId(device_id)
+            if severities:
+                total = Event.objects.raw({'device': device_id, "severity": {"$in": severities}}).count()
+            elif min_severity:
+                total = Event.objects.raw({'device': device_id, "severity": {"$gte": min_severity}}).count()
             else:
-                device_id = ObjectId(device_id)
                 total = Event.objects.raw({'device': device_id}).count()
         else:
-            if severity:
-                total = Event.objects.raw({"severity": severity}).count()
+            if severities:
+                total = Event.objects.raw({"severity": {"$in": severities}}).count()
+            elif min_severity:
+                total = Event.objects.raw({"severity": {"$gte": min_severity}}).count()
             else:
                 total = Event.objects.all().count()
         return total
 
-    def get_events(self, amount: int = None, page: int = None, severity: int = None, min_severity: int = None,
+    def get_events(self, amount: int = None, page: int = None, severities: list = None, min_severity: int = None,
                    device_id: str = None):
         if device_id is not None:
             device_id = ObjectId(device_id)
 
-        if (amount is not None and amount <= 0) or (page is not None and page < 0) or (
-                severity is not None and severity < 0) or (min_severity is not None and min_severity < 0):
+        if (amount is not None and amount <= 0) or (page is not None and page < 0) or (min_severity is not None and min_severity < 0):
             return False
 
-        if severity is not None and min_severity is not None:
+        if min_severity is not None:
             severity = None
-
-        if severity is not None and severity > 10:
-            return False
 
         if min_severity is not None and min_severity > 10:
             return False
@@ -851,11 +853,11 @@ class MongoDBIO:
                             .limit(amount)
                             .values()
                     )
-            elif severity is not None:
+            elif severities is not None:
                 if device_id is not None:
                     events = list(
                         Event.objects
-                            .raw({'device': device_id, "severity": severity})
+                            .raw({'device': device_id, "severity": {"$in": severities}})
                             .order_by([('_id', DESCENDING)])
                             .skip((page - 1) * amount)
                             .limit(amount)
@@ -864,7 +866,7 @@ class MongoDBIO:
                 else:
                     events = list(
                         Event.objects
-                            .raw({"severity": severity})
+                            .raw({"severity": {"$in": severities}})
                             .order_by([('_id', DESCENDING)])
                             .skip((page - 1) * amount)
                             .limit(amount)
@@ -903,18 +905,18 @@ class MongoDBIO:
                             .order_by([('_id', DESCENDING)])
                             .values()
                     )
-            elif severity is not None:
+            elif severities is not None:
                 if device_id is not None:
                     events = list(
                         Event.objects
-                            .raw({'device': device_id, "severity": severity})
+                            .raw({'device': device_id, "severity": {"$in": severities}})
                             .order_by([('_id', DESCENDING)])
                             .values()
                     )
                 else:
                     events = list(
                         Event.objects
-                            .raw({"severity": severity})
+                            .raw({"severity": {"$in": severities}})
                             .order_by([('_id', DESCENDING)])
                             .values()
                     )
