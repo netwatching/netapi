@@ -403,7 +403,7 @@ class MongoDBIO:
                                .values())
 
         elif (page is None or page <= 0) and amount is None:
-            if categories is not None:
+            if categories:
                 devices = list(Device.objects \
                                .raw({'category': {"$in": categories}}) \
                                .order_by([('_id', DESCENDING)])
