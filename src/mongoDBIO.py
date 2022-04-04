@@ -578,6 +578,39 @@ class MongoDBIO:
         aggregator.version = ver
         return aggregator.save()
 
+    def update_device(self, id: str, hostname: str = None, ip: str = None, category: str = None):
+        if self.check_if_device_exsits_by_id(id) is False:
+            return False
+        id = ObjectId(id)
+        update = {}
+        if hostname:
+            if self.check_if_device_exsits(hostname=hostname):
+                return False
+            update["hostname"] = hostname
+        if ip:
+            update["ip"] = ip
+        if category:
+            if self.check_if_category_exsits(category_id=category) is False:
+                return False
+            update["category"] = ObjectId(category)
+
+        Device.objects.raw({"_id": id}).update({"$set": update})
+        return True
+
+    def check_if_category_exsits(self, category_id: str):
+        count = Category.objects.raw({"_id": ObjectId(category_id)}).count()
+        if count == 0:
+            return False
+        else:
+            return True
+
+    def check_if_device_exsits_by_id(self, id: str):
+        count = Device.objects.raw({"_id": ObjectId(id)}).count()
+        if count == 0:
+            return False
+        else:
+            return True
+
     def insert_aggregator_modules(self, modules, id):
         try:
             id = ObjectId(id)
@@ -642,7 +675,7 @@ class MongoDBIO:
         except Category.MultipleObjectsReturned:
             return -1
 
-        if not self.check_if_device_exsits(hostname):
+        if self.check_if_device_exsits(hostname) is False:
             device = Device(hostname=hostname, category=cat.pk, ip=ip).save()
 
             if dconfig("single_aggregator_mode", cast=bool, default=False):

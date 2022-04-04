@@ -34,6 +34,11 @@ class Category(BaseModel):
     category: str = "Drucka"
     id: str = "0101010"
 
+class UpdateDevice(BaseModel):
+    hostname: Optional[str]
+    category: Optional[str]
+    ip: Optional[str]
+
 
 class AggregatorSmall(BaseModel):
     version: str = "1.0"

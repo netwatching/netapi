@@ -23,7 +23,8 @@ from src.models.models import Settings, ServiceLoginOut, ServiceAggregatorLoginO
     AggregatorByID, SetConfig, LinkAgDeviceIN, AggregatorDeviceLinkOut, AggregatorsOut, \
     AddDataForDevices, AggregatorVersionIn, AggregatorVersionOut, AggregatorModulesIn, AggregatorModulesOut, \
     DeviceByIdOut, AddDeviceIn, AddDeviceOut, AddCategoryIn, AddCategoryOut, GetAlertByIdOut, AddDataForDeviceOut, \
-    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut, DeviceConfigOut, DeleteConfig
+    GetAlertsByIdIn, GetAllAlertsOut, GetCategoriesOut, FilterOut, DevicesFilterOut, DeviceConfigOut, DeleteConfig, \
+    UpdateDevice
 
 # Note: Better logging if needed
 # logging.config.fileConfig('loggingx.conf', disable_existing_loggers=False)
@@ -773,6 +774,31 @@ async def delete_module_from_device(module_id: str, device_id: str, authorize: A
         raise HTTPException(status_code=400, detail="Not found")
     return AddCategoryOut(detail="success")
 
+@app.put("/api/devices/{id}", tags=["Device"])
+async def get_devices_by_category(
+        request: UpdateDevice,
+        id: str,
+        authorize: AuthJWT = Depends()
+):
+    """
+    /devices - PUT - update a device
+    """
+
+    authorize.jwt_required()
+    hostname = None
+    ip = None
+    category = None
+
+    if hasattr(request, "hostname"):
+        hostname = request.hostname
+    if hasattr(request, "ip"):
+        ip = request.ip
+    if hasattr(request, "category"):
+        category = request.category
+
+    if mongo.update_device(id=id, hostname=hostname, ip=ip, category=category):
+        return JSONResponse(status_code=200, content="Success")
+    raise HTTPException(status_code=400, detail="Failed")
 
 
 # --- Exception Handling --- #
