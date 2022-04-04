@@ -1183,6 +1183,7 @@ class MongoDBIO:
 
     def redis_insert_live_data(self, device: Device, live_data: dict):
         hostname = device.hostname
+        print(live_data)
 
         for port in live_data:
             if isinstance(live_data[port], dict) is False:
@@ -1191,6 +1192,9 @@ class MongoDBIO:
             port_data = live_data[port]
             for key in port_data:
                 if isinstance(key, str) is False:
+                    continue
+
+                if key in self.redis_indices is False:
                     continue
 
                 database_index = self.redis_indices.index(key)
