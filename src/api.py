@@ -517,7 +517,7 @@ async def get_alerts_by_device(
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    total = mongo.get_event_count(device_id=id, serverity=serverity)
+    total = mongo.get_event_count(device_id=id, severity=severity)
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
@@ -693,7 +693,7 @@ async def get_all_alerts(
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    total = mongo.get_event_count()
+    total = mongo.get_event_count(severity=severity)
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
