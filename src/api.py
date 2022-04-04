@@ -487,6 +487,7 @@ async def get_alerts_by_device(
     authorize.jwt_required()
 
     events = []
+    new_sevs = []
     if severity:
         severities = severity.split('_')
 
@@ -516,8 +517,8 @@ async def get_alerts_by_device(
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    #total = mongo.get_event_count(device_id=id, severities=severities, min_severity=min_severity)
-    total = len(events)
+    total = mongo.get_event_count(device_id=id, severities=new_sevs, min_severity=min_severity)
+    #total = len(events)
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
@@ -665,6 +666,7 @@ async def get_all_alerts(
     authorize.jwt_required()
 
     events = []
+    new_sevs = []
     if severity:
         severities = severity.split('_')
 
@@ -690,8 +692,8 @@ async def get_all_alerts(
         if isinstance(current_events, bool) is False and current_events is not False:
             events = current_events
 
-    #total = mongo.get_event_count(severities=severities, min_severity=min_severity)
-    total = len(events)
+    total = mongo.get_event_count(severities=new_sevs, min_severity=min_severity)
+    #total = len(events)
 
     if isinstance(events, bool) and events is False:
         raise HTTPException(status_code=400, detail="Error occurred")
