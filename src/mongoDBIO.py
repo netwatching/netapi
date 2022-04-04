@@ -798,12 +798,19 @@ class MongoDBIO:
         except pymongo.errors.InvalidId:
             return False
 
-    def get_event_count(self, device_id: str = None):
+    def get_event_count(self, device_id: str = None, severity: int = None):
         if device_id is not None:
-            device_id = ObjectId(device_id)
-            total = Event.objects.raw({'device': device_id}).count()
+            if severity:
+                device_id = ObjectId(device_id)
+                total = Event.objects.raw({'device': device_id, "severity": severity}).count()
+            else:
+                device_id = ObjectId(device_id)
+                total = Event.objects.raw({'device': device_id}).count()
         else:
-            total = Event.objects.all().count()
+            if severity:
+                total = Event.objects.raw({"severity": severity}).count()
+            else:
+                total = Event.objects.all().count()
         return total
 
     def get_events(self, amount: int = None, page: int = None, severity: int = None, min_severity: int = None,
