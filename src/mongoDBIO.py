@@ -1192,8 +1192,8 @@ class MongoDBIO:
             if new_link:
                 new_links.append(new_link)
 
-        for new_link in new_links:
-            self.__create_connections__(new_link)
+        # for new_link in new_links:
+        #     self.__create_connections__(new_link)
 
     def __save_link__(self, link: Link):
         try:
