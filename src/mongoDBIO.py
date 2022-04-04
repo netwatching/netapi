@@ -1222,7 +1222,10 @@ class MongoDBIO:
                 if key in self.redis_indices is False:
                     continue
 
-                database_index = self.redis_indices.index(key)
+                try:
+                    database_index = self.redis_indices.index(key)
+                except ValueError:
+                    continue
 
                 if database_index != -1:
                     self.redis_insert(hostname=f"{hostname}--//--{port}", values=port_data[key],
