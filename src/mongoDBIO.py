@@ -967,7 +967,8 @@ class MongoDBIO:
 
     async def keep_connections(self):
         while True:
-            await asyncio.sleep(60)
+            await asyncio.sleep(10)
+            print("Connections thread started")
 
             links = list(Link.objects.order_by([['mac', DESCENDING]]).all())
 
@@ -979,10 +980,11 @@ class MongoDBIO:
                     }
                     target = Link.objects.get(query)
                 except Link.DoesNotExist:
-                    return
+                    continue
                 except Link.MultipleObjectsReturned:
-                    return
+                    continue
 
+                print("Connection found")
                 connection = Connection(source=source, target=target)
                 if self.__check_if_connection_exists__(connection=connection) is False:
                     connection.save()
