@@ -26,7 +26,7 @@ sniffio==1.2.0
 
 SQLAlchemy==1.4.27
 sqlalchemy-repr==0.0.2
-starlette==0.25.0
+starlette==0.27.0
 toml==0.10.2
 typing-extensions==3.10.0.2
 uvicorn==0.15.0
