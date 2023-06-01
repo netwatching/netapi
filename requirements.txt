@@ -38,7 +38,7 @@ wsproto==1.0.0
 fastapi-route-logger-middleware==0.2.3
 
 pymodm~=0.4.3
-redis~=4.1.1
+redis~=4.3.6
 
 pycryptodome==3.14.1
 
