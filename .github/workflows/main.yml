@@ -34,7 +34,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: netwatching/netregator:latest, netwatching/netapi:${{ env.RELEASE }}
+          tags: netwatching/netapi:latest, netwatching/netapi:${{ env.RELEASE }}
       - name: Build and push other
         uses: docker/build-push-action@v4
         if: github.ref != 'refs/heads/main'
@@ -42,4 +42,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: netwatching/netapi:${{ github.head_ref || github.ref_name }}, netwatching/netregator:${{ env.RELEASE }}-${{ github.head_ref || github.ref_name }}
+          tags: netwatching/netapi:${{ github.head_ref || github.ref_name }}, netwatching/netapi:${{ env.RELEASE }}-${{ github.head_ref || github.ref_name }}
