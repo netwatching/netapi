@@ -20,7 +20,7 @@ pydantic==1.10.8
 PyJWT==1.7.1
 pymongo==3.12.1
 PyMySQL==1.0.2
-python-decouple==3.5
+python-decouple==3.8
 python-dotenv==0.19.1
 PyYAML==6.0
 sniffio==1.2.0
