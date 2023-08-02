@@ -1,11 +1,9 @@
 from datetime import datetime
 import json
 
-import pymodm
 import pymongo.errors
 import redis
 from decouple import config as dconfig
-from fastapi import HTTPException
 from pymodm import connection
 from pymongo import DESCENDING
 
