@@ -39,7 +39,7 @@ fastapi-route-logger-middleware==0.2.3
 pymodm~=0.4.3
 redis~=4.5.5
 
-pycryptodome==3.14.1
+pycryptodome==3.18.0
 
 humanize==4.0.0
 
